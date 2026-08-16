@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Pallet Quest</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#000; touch-action:none; }
+  body { font-family:'Courier New',monospace; }
+  #wrap { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:#0b0b0b; }
+  #stage { position:relative; width:100%; height:100%; max-width:600px; background:#000; }
+  canvas { display:block; width:100%; height:100%; image-rendering:pixelated; }
+  #textbox {
+    position:absolute; left:3%; right:3%; bottom:3%; min-height:22%;
+    background:#fff; border:4px solid #2b2b2b; border-radius:6px;
+    padding:12px 14px; font-size:15px; line-height:1.4; color:#111;
+    display:none; box-shadow:0 4px 0 #000;
+  }
+  #textbox .prompt { position:absolute; right:14px; bottom:8px; font-size:14px; animation:blink 0.8s infinite; }
+  @keyframes blink { 0%,49%{opacity:1;} 50%,100%{opacity:0;} }
+  #choices { position:absolute; right:3%; bottom:26%; background:#fff; border:4px solid #2b2b2b; border-radius:6px; display:none; box-shadow:0 4px 0 #000; }
+  #choices div { padding:8px 20px; font-size:15px; border-bottom:2px solid #ddd; }
+  #choices div:last-child{border-bottom:none;}
+  #choices div.sel { background:#ffde5a; }
+  #hud { position:absolute; top:2%; left:2%; right:2%; display:flex; justify-content:space-between; pointer-events:none; font-size:12px; }
+  .panel { background:rgba(255,255,255,0.92); border:2px solid #333; border-radius:5px; padding:4px 8px; color:#111; }
+  #startScreen, #introScreen {
+    position:absolute; inset:0; background:#1a3a1a; color:#fff; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center; padding:20px; z-index:20;
+  }
+  #startScreen { background:linear-gradient(180deg,#7ec850,#3a7d3a 60%,#1f4d1f); }
+  #startScreen h1 { font-size:34px; color:#fff; text-shadow:3px 3px 0 #b02020,-1px -1px 0 #7a1414; margin-bottom:6px; letter-spacing:1px;}
+  #startScreen h2 { font-size:15px; color:#fff2b0; margin-bottom:40px; font-weight:normal; }
+  #startScreen .prompt2 { font-size:16px; background:rgba(0,0,0,0.35); padding:10px 22px; border-radius:20px; animation:blink 1s infinite; }
+  #introScreen { display:none; background:#000; }
+  #introScreen p { max-width:480px; font-size:15px; line-height:1.8; margin-bottom:30px; }
+  #introScreen .prompt2 { font-size:14px; opacity:0.7; animation:blink 1s infinite; }
+  #battleScreen {
+    position:absolute; inset:0; z-index:15; display:none; background:#cfe8b0;
+  }
+  #battleCanvas { width:100%; height:70%; display:block; }
+  #battleMenu {
+    position:absolute; left:0; right:0; bottom:0; height:30%; background:#fff;
+    border-top:4px solid #2b2b2b; display:flex;
+  }
+  #battleMenu .bm-left { flex:1.4; padding:10px 14px; font-size:14px; line-height:1.5; color:#111; border-right:3px solid #333; }
+  #battleMenu .bm-right { flex:1; display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:8px; }
+  .bmbtn { background:#f5f5f5; border:2px solid #333; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:14px; color:#111; font-weight:bold; }
+  .bmbtn.sel { background:#ffde5a; }
+  #moveList { position:absolute; inset:0; background:#fff; display:none; flex-direction:column; padding:10px; }
+  .movebtn { border:2px solid #333; border-radius:6px; padding:8px; margin-bottom:6px; font-size:13px; color:#111; }
+  .movebtn.sel { background:#ffde5a; }
+  #genderScreen { position:absolute; inset:0; background:#222; z-index:25; display:none; align-items:center; justify-content:center; flex-direction:column; color:#fff; }
+  #genderScreen .opt { border:3px solid #fff; padding:14px 40px; margin:10px; border-radius:8px; font-size:16px; }
+  #genderScreen .opt.sel { background:#ffde5a; color:#111; }
+  #nameScreen { position:absolute; inset:0; background:#222; z-index:25; display:none; align-items:center; justify-content:center; flex-direction:column; color:#fff; padding:20px;}
+  #nameScreen input { font-size:20px; padding:10px; width:80%; max-width:300px; text-align:center; border-radius:6px; border:none; margin-bottom:20px;}
+  #nameScreen button { font-size:16px; padding:10px 30px; border-radius:20px; border:none; background:#ffde5a; font-weight:bold;}
+  #partyBtn, #bagBtn { position:absolute; z-index:12; }
+  #fadeOverlay { position:absolute; inset:0; background:#000; opacity:0; pointer-events:none; z-index:30; transition:opacity 0.5s; }
+</style>
+</head>
+<body>
+<div id="wrap">
+<div id="stage">
+
+  <div id="startScreen">
+    <h1>PALLET QUEST</h1>
+    <h2>a fire red style adventure</h2>
+    <div class="prompt2">TAP TO START</div>
+  </div>
+
+  <div id="genderScreen">
+    <div style="font-size:18px;margin-bottom:20px;">Choose your character</div>
+    <div class="opt" id="genBoy">BOY</div>
+    <div class="opt" id="genGirl">GIRL</div>
+  </div>
+
+  <div id="nameScreen">
+    <div style="font-size:18px;margin-bottom:16px;">What's your name?</div>
+    <input id="nameInput" maxlength="8" placeholder="ASH">
+    <button id="nameGo">OK</button>
+  </div>
+
+  <div id="introScreen">
+    <p id="introText"></p>
+    <div class="prompt2">TAP TO CONTINUE</div>
+  </div>
+
+  <canvas id="canvas"></canvas>
+  <div id="hud">
+    <div class="panel" id="hudName">—</div>
+    <div class="panel" id="hudTime">—</div>
+  </div>
+  <div id="textbox"><span id="textboxContent"></span><span class="prompt">▼</span></div>
+  <div id="choices"></div>
+
+  <div id="battleScreen">
+    <canvas id="battleCanvas"></canvas>
+    <div id="battleMenu">
+      <div class="bm-left" id="battleLog">What will PLAYER do?</div>
+      <div class="bm-right" id="battleActions">
+        <div class="bmbtn" data-a="fight">FIGHT</div>
+        <div class="bmbtn" data-a="bag">BAG</div>
+        <div class="bmbtn" data-a="party">POKéMON</div>
+        <div class="bmbtn" data-a="run">RUN</div>
+      </div>
+    </div>
+    <div id="moveList"></div>
+  </div>
+
+  <div id="fadeOverlay"></div>
+</div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================== CORE SETUP ============================== */
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const stage = document.getElementById('stage');
+let SCALE = 3;
+const TILE = 16;
+
+function resize(){
+  const r = stage.getBoundingClientRect();
+  canvas.width = r.width;
+  canvas.height = r.height;
+}
+window.addEventListener('resize', resize);
+resize();
+
+function fadeOut(cb, dur){
+  const f = document.getElementById('fadeOverlay');
+  f.style.transition = 'opacity '+(dur||400)+'ms';
+  f.style.opacity = '1';
+  setTimeout(cb, (dur||400)+20);
+}
+function fadeIn(dur){
+  const f = document.getElementById('fadeOverlay');
+  f.style.transition = 'opacity '+(dur||400)+'ms';
+  f.style.opacity = '0';
+}
+
+/* ============================== SPECIES DATA ============================== */
+// Simple stat-based monster species, FireRed-flavored but original names to avoid IP issues visually (colors define look)
+const SPECIES = {
+  flarim:  { name:"FLARIM",  type:"Fire",  color:"#e8622c", color2:"#ffb15e", base:{hp:39,atk:52,def:43,spd:65}, moves:["Scratch","Ember","Growl","Flame Tackle"] },
+  aquabo:  { name:"AQUABO",  type:"Water", color:"#2c8ce8", color2:"#8ecfff", base:{hp:44,atk:48,def:65,spd:43}, moves:["Tackle","Water Gun","Tail Whip","Bubble Beam"] },
+  leafuni: { name:"LEAFUNI", type:"Grass", color:"#3fa64a", color2:"#a3e88f", base:{hp:45,atk:49,def:49,spd:45}, moves:["Tackle","Vine Whip","Growl","Razor Leaf"] },
+  ratteck: { name:"RATTECK", type:"Normal",color:"#8a7157", color2:"#c9b28f", base:{hp:30,atk:56,def:35,spd:72}, moves:["Tackle","Quick Attack"] },
+  pidgem:  { name:"PIDGEM",  type:"Flying",color:"#c9a05a", color2:"#8b6b3a", base:{hp:40,atk:45,def:40,spd:56}, moves:["Tackle","Gust"] },
+  weedle2: { name:"WEEVIT",  type:"Bug",   color:"#c9c93a", color2:"#333333", base:{hp:29,atk:35,def:30,spd:50}, moves:["String Shot","Poison Sting"] },
+};
+
+const MOVES = {
+  "Scratch":     { power:35, type:"Normal" },
+  "Tackle":      { power:35, type:"Normal" },
+  "Growl":       { power:0,  type:"Normal", fx:"lowerAtk" },
+  "Tail Whip":   { power:0,  type:"Normal", fx:"lowerDef" },
+  "Ember":       { power:40, type:"Fire" },
+  "Flame Tackle":{ power:55, type:"Fire" },
+  "Water Gun":   { power:40, type:"Water" },
+  "Bubble Beam": { power:55, type:"Water" },
+  "Vine Whip":   { power:40, type:"Grass" },
+  "Razor Leaf":  { power:55, type:"Grass" },
+  "Quick Attack":{ power:40, type:"Normal" },
+  "Gust":        { power:35, type:"Flying" },
+  "String Shot": { power:0,  type:"Bug", fx:"lowerSpd" },
+  "Poison Sting":{ power:30, type:"Poison" },
+};
+
+function makeMon(key, level){
+  const sp = SPECIES[key];
+  const m = {
+    key, level, xp:0,
+    hp:0, maxHp:0, atk:0, def:0, spd:0,
+    moves: sp.moves.slice(0,4),
+    fainted:false,
+  };
+  recalcStats(m);
+  m.hp = m.maxHp;
+  return m;
+}
+function recalcStats(m){
+  const sp = SPECIES[m.key];
+  m.maxHp = Math.floor(sp.base.hp * (m.level/10)) + m.level + 10;
+  m.atk = Math.floor(sp.base.atk * (m.level/10)) + 5;
+  m.def = Math.floor(sp.base.def * (m.level/10)) + 5;
+  m.spd = Math.floor(sp.base.spd * (m.level/10)) + 5;
+}
+function xpToNext(level){ return level*level*4 + 20; }
+
+/* ============================== GAME STATE ============================== */
+const state = {
+  playerName: "ASH",
+  gender: "boy",
+  party: [],
+  badges: 0,
+  map: null,
+  px: 6, py: 6,        // tile position
+  facing: "down",
+  moving: false,
+  step: 0,
+  flags: {},
+  inBattle: false,
+};
+
+/* ============================== MAPS ============================== */
+// Tile legend: 0 grass(walk) 1 wall/tree 2 path 3 tallgrass(encounter) 4 water 5 flower 6 door/warp 7 building-top 8 building-wall 9 sign 10 fence 11 ledge
+function T(rows){ return rows.map(r=>r.split('').map(c=>+c)); }
+
+const MAPS = {};
+
+MAPS.bedroom = {
+  w:8, h:8,
+  tiles: T([
+    "11111111",
+    "10000001",
+    "10022001",
+    "10022001",
+    "10000001",
+    "10000601",
+    "11111111",
+    "11111111",
+  ]),
+  warps: { "5,5":{ to:"pallet", x:5, y:9 } },
+  npcs: [],
+  bg:"#c9a876",
+  name:"YOUR ROOM"
+};
+
+MAPS.pallet = {
+  w:20, h:18,
+  tiles: T([
+    "11111111111111111111".slice(0,20),
+    "12222222222222222221".slice(0,20),
+    "12000000000000000021".slice(0,20),
+    "12077710000077710021".slice(0,20),
+    "12088810000088810021".slice(0,20),
+    "12088810000088810021".slice(0,20),
+    "12000600000006000021".slice(0,20),
+    "12002220000022200021".slice(0,20),
+    "12000000000000000021".slice(0,20),
+    "12000000550000000021".slice(0,20),
+    "12000000550000000021".slice(0,20),
+    "12000000000000000021".slice(0,20),
+    "12007771000000000021".slice(0,20),
+    "12008881000000000021".slice(0,20),
+    "12000600000000002221".slice(0,20),
+    "12000000000000002001".slice(0,20),
+    "12222222222222222221".slice(0,20),
+    "11111111111111111111".slice(0,20),
+  ]),
+  warps: {
+    "5,9":{ to:"bedroom", x:5, y:5 },
+    "5,17":{ to:"labFront", x:5, y:16 },
+    "18,15":{ to:"route1", x:5, y:16 }
+  },
+  npcs: [
+    { x:9, y:9, sprite:"girl", dir:"down", text:["Hi! I'm your neighbor, GREEN.","My grandpa is the POKéMON professor here in PALLET TOWN!"] },
+    { x:14, y:6, sprite:"man", dir:"down", text:["PALLET TOWN. A place steeped in nostalgic memories..."] },
+  ],
+  bg:"#7cc46a",
+  name:"PALLET TOWN"
+};
+
+MAPS.labFront = {
+  w:20, h:6,
+  tiles: T([
+    "11111111111111111111".slice(0,20),
+    "12222222222222222221".slice(0,20),
+    "12000000000000000021".slice(0,20),
+    "12000000006000000021".slice(0,20),
+    "12222222222222222221".slice(0,20),
+    "11111111111111111111".slice(0,20),
+  ]),
+  warps: { "9,3":{ to:"lab", x:5, y:8 }, "9,4":{to:"pallet", x:5, y:16} },
+  npcs: [],
+  bg:"#7cc46a",
+  name:"PALLET TOWN"
+};
+
+MAPS.lab = {
+  w:12, h:10,
+  tiles: T([
+    "111111111111".slice(0,12),
+    "100000000001".slice(0,12),
+    "100000000001".slice(0,12),
+    "100000000001".slice(0,12),
+    "100000000001".slice(0,12),
+    "100000000001".slice(0,12),
+    "100000000001".slice(0,12),
+    "100000000001".slice(0,12),
+    "100006000001".slice(0,12),
+    "111111111111".slice(0,12),
+  ]),
+  warps: { "5,8":{ to:"labFront", x:9, y:3 } },
+  npcs: [
+    { x:5, y:3, sprite:"prof", dir:"down", id:"oak", text:null }, // handled specially
+  ],
+  bg:"#e8e0c8",
+  name:"OAK'S LAB"
+};
+
+MAPS.route1 = {
+  w:14, h:36,
+  tiles: null, // generated
+  warps: {},
+  npcs: [
+    { x:6, y:20, sprite:"boy", dir:"down", id:"rival", text:null },
+    { x:4, y:10, sprite:"man", dir:"down", text:["Wild POKéMON lurk in the tall grass.","Watch your step!"] },
+  ],
+  bg:"#7cc46a",
+  name:"ROUTE 1"
+};
+(function genRoute1(){
+  const w=14,h=36;
+  const rows=[];
+  for(let y=0;y<h;y++){
+    let row="";
+    for(let x=0;x<w;x++){
+      if(x===0||x===w-1) row+="1";
+      else if(y===0) row+="2";
+      else if(y===h-1) row+="6";
+      else {
+        // tall grass patches
+        const inGrassBand = (y%5===2||y%5===3) && x>2 && x<11;
+        if(inGrassBand) row+="3";
+        else row+="2";
+      }
+    }
+    rows.push(row);
+  }
+  MAPS.route1.tiles = T(rows);
+  MAPS.route1.warps["6,35"] = { to:"viridian", x:9, y:30 };
+})();
+
+MAPS.viridian = {
+  w:22, h:20,
+  tiles: null,
+  warps: {},
+  npcs: [
+    { x:11, y:9, sprite:"girl", dir:"down", text:["Welcome to VIRIDIAN CITY!","The POKéMON CENTER heals your team for free."] },
+    { x:6, y:6, sprite:"man", dir:"down", text:["The GYM leader isn't in today...","Rumor says he loves to garden instead of battle!"] },
+    { x:16, y:12, sprite:"man", dir:"down", text:["This is as far as the demo goes.","Thanks for playing PALLET QUEST!"] },
+  ],
+  bg:"#7cc46a",
+  name:"VIRIDIAN CITY"
+};
+(function genViridian(){
+  const w=22,h=20;
+  const rows=[];
+  for(let y=0;y<h;y++){
+    let row="";
+    for(let x=0;x<w;x++){
+      if(x===0||x===w-1||y===0) row+="1";
+      else if(y===h-1) row+="1";
+      else row+="2";
+    }
+    rows.push(row);
+  }
+  // pokecenter building
+  const set=(x,y,v)=>{ rows[y]=rows[y].substring(0,x)+v+rows[y].substring(x+1); };
+  for(let x=3;x<=7;x++){ set(x,3,"7"); set(x,4,"8"); set(x,5,"8"); }
+  set(5,5,"6");
+  // gym building
+  for(let x=13;x<=17;x++){ set(x,3,"7"); set(x,4,"8"); set(x,5,"8"); }
+  set(15,5,"6");
+  MAPS.viridian.tiles = T(rows);
+  MAPS.viridian.warps["5,5"] = {to:"pokecenter", x:5, y:8};
+  MAPS.viridian.warps["9,30"] = {to:"route1", x:6, y:34}; // safety, not used
+  MAPS.viridian.warps["9,0"]; // n/a
+})();
+MAPS.viridian.warps["11,0"] = null;
+delete MAPS.viridian.warps["11,0"];
+// entrance back to route1 from top edge:
+MAPS.viridian.warps["9,0"] = {to:"route1", x:6,y:34};
+
+MAPS.pokecenter = {
+  w:10, h:8,
+  tiles: T([
+    "1111111111",
+    "1000000001",
+    "1000000001",
+    "1000000001",
+    "1000000001",
+    "1000000001",
+    "1000600001",
+    "1111111111",
+  ]),
+  warps: { "4,6":{to:"viridian", x:5, y:6} },
+  npcs: [
+    { x:4, y:2, sprite:"nurse", dir:"down", id:"nurse", text:null },
+  ],
+  bg:"#ffe0e8",
+  name:"POKéMON CENTER"
+};
+
+/* ============================== INPUT / STATE MACHINE ============================== */
+let uiMode = "start"; // start,gender,name,intro,overworld,dialog,battle
+const introLines = [];
+
+document.getElementById('startScreen').addEventListener('click', ()=>{
+  document.getElementById('startScreen').style.display='none';
+  uiMode="gender";
+  document.getElementById('genderScreen').style.display='flex';
+});
+
+let selGender = null;
+document.getElementById('genBoy').addEventListener('click', ()=>{ selGender='boy'; chooseGender('boy'); });
+document.getElementById('genGirl').addEventListener('click', ()=>{ selGender='girl'; chooseGender('girl'); });
+function chooseGender(g){
+  state.gender = g;
+  document.getElementById('genderScreen').style.display='none';
+  uiMode='name';
+  document.getElementById('nameScreen').style.display='flex';
+}
+document.getElementById('nameGo').addEventListener('click', submitName);
+document.getElementById('nameInput').addEventListener('keydown', e=>{ if(e.key==='Enter') submitName(); });
+function submitName(){
+  const v = document.getElementById('nameInput').value.trim();
+  state.playerName = (v||"ASH").toUpperCase().slice(0,8);
+  document.getElementById('nameScreen').style.display='none';
+  startIntro();
+}
+
+function startIntro(){
+  uiMode='intro';
+  const scr = document.getElementById('introScreen');
+  scr.style.display='flex';
+  const lines = [
+    "Welcome to the world of POKéMON!\n\nMy name is OAK. People call me the POKéMON PROF!",
+    "This world is inhabited by creatures called POKéMON!",
+    "For some people, POKéMON are pets. Others use them for fights.\n\nAs for myself... I study POKéMON as a profession.",
+    state.playerName + "! Your very own POKéMON legend is about to unfold!\n\nA world of dreams and adventures with POKéMON awaits! Let's go!"
+  ];
+  let idx=0;
+  document.getElementById('introText').textContent = lines[0];
+  scr.onclick = ()=>{
+    idx++;
+    if(idx<lines.length){
+      document.getElementById('introText').textContent = lines[idx];
+    } else {
+      scr.style.display='none';
+      enterOverworld('bedroom', 5, 5);
+    }
+  };
+}
+
+/* ============================== OVERWORLD ============================== */
+function enterOverworld(mapKey, x, y){
+  uiMode='overworld';
+  state.map = mapKey;
+  state.px = x; state.py = y;
+  document.getElementById('hudName').textContent = MAPS[mapKey].name;
+  updateClock();
+  requestAnimationFrame(loop);
+}
+function updateClock(){
+  const d=new Date();
+  let h=d.getHours(), m=d.getMinutes();
+  const ap = h>=12?'PM':'AM';
+  h = h%12; if(h===0)h=12;
+  document.getElementById('hudTime').textContent = h+':' + String(m).padStart(2,'0') + ' ' + ap;
+}
+setInterval(updateClock, 15000);
+
+function curMap(){ return MAPS[state.map]; }
+function tileAt(mx,my){
+  const m = curMap();
+  if(mx<0||my<0||mx>=m.w||my>=m.h) return 1;
+  return m.tiles[my][mx];
+}
+function walkable(mx,my){
+  const t = tileAt(mx,my);
+  return t===0||t===2||t===3||t===5||t===6;
+}
+function npcAt(mx,my){
+  return curMap().npcs.find(n=>n.x===mx&&n.y===my);
+}
+
+// Tap-to-move: pathfind with simple BFS on canvas tap
+canvas.addEventListener('click', onTap);
+function screenToTile(evX, evY){
+  const r = canvas.getBoundingClientRect();
+  const sx = (evX - r.left) / r.width * canvas.width;
+  const sy = (evY - r.top) / r.height * canvas.height;
+  const cam = getCamera();
+  const tx = Math.floor((sx + cam.x) / (TILE*SCALE));
+  const ty = Math.floor((sy + cam.y) / (TILE*SCALE));
+  return {tx,ty};
+}
+function getCamera(){
+  const m = curMap();
+  const mapPxW = m.w*TILE*SCALE, mapPxH = m.h*TILE*SCALE;
+  let camX = state.px*TILE*SCALE + TILE*SCALE/2 - canvas.width/2;
+  let camY = state.py*TILE*SCALE + TILE*SCALE/2 - canvas.height/2;
+  camX = Math.max(0, Math.min(camX, Math.max(0,mapPxW-canvas.width)));
+  camY = Math.max(0, Math.min(camY, Math.max(0,mapPxH-canvas.height)));
+  return {x:camX,y:camY};
+}
+
+let path = [];
+function onTap(e){
+  if(uiMode!=='overworld') { advanceDialog(); return; }
+  const {tx,ty} = screenToTile(e.clientX, e.clientY);
+  const n = npcAt(tx,ty);
+  if(n && manhattan(n.x,n.y,state.px,state.py)<=2){
+    // face and talk if adjacent after moving
+    path = computePath(state.px,state.py, adjacentTile(n,state.px,state.py));
+    path.talkTarget = n;
+    return;
+  }
+  if(!walkable(tx,ty)) return;
+  path = computePath(state.px, state.py, {x:tx,y:ty});
+}
+function manhattan(x1,y1,x2,y2){ return Math.abs(x1-x2)+Math.abs(y1-y2); }
+function adjacentTile(n, fromX, fromY){
+  const opts = [{x:n.x,y:n.y-1},{x:n.x,y:n.y+1},{x:n.x-1,y:n.y},{x:n.x+1,y:n.y}].filter(o=>walkable(o.x,o.y));
+  opts.sort((a,b)=>manhattan(a.x,a.y,fromX,fromY)-manhattan(b.x,b.y,fromX,fromY));
+  return opts[0]||{x:n.x,y:n.y};
+}
+function computePath(sx,sy,goal){
+  if(sx===goal.x&&sy===goal.y) return [];
+  const key=(x,y)=>x+','+y;
+  const visited = new Set([key(sx,sy)]);
+  const q = [{x:sx,y:sy,path:[]}];
+  const maxSteps=400;
+  let iter=0;
+  while(q.length && iter<2000){
+    iter++;
+    const cur = q.shift();
+    const dirs = [[0,-1],[0,1],[-1,0],[1,0]];
+    for(const [dx,dy] of dirs){
+      const nx=cur.x+dx, ny=cur.y+dy;
+      if(visited.has(key(nx,ny))) continue;
+      if(!walkable(nx,ny) && !(nx===goal.x&&ny===goal.y)) continue;
+      if(!walkable(nx,ny)) continue;
+      const np = cur.path.concat([{x:nx,y:ny}]);
+      if(nx===goal.x&&ny===goal.y) return np;
+      if(np.length<maxSteps){
+        visited.add(key(nx,ny));
+        q.push({x:nx,y:ny,path:np});
+      }
+    }
+  }
+  return [];
+}
+
+/* ============================== GAME LOOP / MOVEMENT ============================== */
+let animT = 0;
+let frameCount = 0;
+function loop(ts){
+  if(uiMode!=='overworld'){ return; }
+  frameCount++;
+  if(!state.moving && path.length>0){
+    const next = path.shift();
+    tryMoveTo(next.x, next.y, ()=>{
+      if(path.length===0 && path.talkTarget){
+        const n = path.talkTarget;
+        faceToward(n.x,n.y);
+        talkToNpc(n);
+      }
+    });
+  }
+  render();
+  requestAnimationFrame(loop);
+}
+function faceToward(nx,ny){
+  const dx=nx-state.px, dy=ny-state.py;
+  if(Math.abs(dx)>Math.abs(dy)) state.facing = dx>0?"right":"left";
+  else state.facing = dy>0?"down":"up";
+}
+let moveAnim = null;
+function tryMoveTo(nx, ny, cb){
+  const dx=nx-state.px, dy=ny-state.py;
+  if(Math.abs(dx)+Math.abs(dy)!==1) { if(cb)cb(); return; }
+  state.facing = dx===1?"right":dx===-1?"left":dy===1?"down":"up";
+  if(!walkable(nx,ny)) { if(cb)cb(); return; }
+  state.moving = true;
+  const startX=state.px, startY=state.py;
+  const dur = 160;
+  const t0 = performance.now();
+  function step(now){
+    const p = Math.min(1,(now-t0)/dur);
+    moveAnim = { x: startX+(nx-startX)*p, y: startY+(ny-startY)*p };
+    if(p<1){ requestAnimationFrame(step); }
+    else {
+      state.px = nx; state.py = ny; moveAnim=null; state.moving=false;
+      state.step++;
+      handleTileEnter(nx,ny);
+      if(cb) cb();
+    }
+  }
+  requestAnimationFrame(step);
+}
+function handleTileEnter(x,y){
+  const m = curMap();
+  const w = m.warps[x+','+y];
+  if(w){
+    fadeOut(()=>{
+      enterOverworld(w.to, w.x, w.y);
+      fadeIn();
+    }, 300);
+    return;
+  }
+  const t = tileAt(x,y);
+  if(t===3){ // tall grass
+    if(Math.random()<0.15){
+      startWildBattle();
+    }
+  }
+}
+
+/* ============================== RENDERING ============================== */
+function render(){
+  const m = curMap();
+  const cam = getCamera();
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = m.bg;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  const t0x = Math.floor(cam.x/(TILE*SCALE))-1;
+  const t0y = Math.floor(cam.y/(TILE*SCALE))-1;
+  const tCols = Math.ceil(canvas.width/(TILE*SCALE))+2;
+  const tRows = Math.ceil(canvas.height/(TILE*SCALE))+2;
+
+  for(let ty=t0y; ty<t0y+tRows; ty++){
+    for(let tx=t0x; tx<t0x+tCols; tx++){
+      if(tx<0||ty<0||tx>=m.w||ty>=m.h) continue;
+      const t = m.tiles[ty][tx];
+      const sx = tx*TILE*SCALE - cam.x;
+      const sy = ty*TILE*SCALE - cam.y;
+      drawTile(t, sx, sy);
+    }
+  }
+  // npcs
+  for(const n of m.npcs){
+    const sx = n.x*TILE*SCALE - cam.x, sy = n.y*TILE*SCALE - cam.y;
+    drawPerson(sx, sy, n.dir||"down", n.sprite, false);
+  }
+  // player
+  const px = moveAnim?moveAnim.x:state.px, py = moveAnim?moveAnim.y:state.py;
+  const psx = px*TILE*SCALE - cam.x, psy = py*TILE*SCALE - cam.y;
+  drawPerson(psx, psy, state.facing, state.gender, state.moving, frameCount);
+}
+
+function drawTile(t, x, y){
+  const s = TILE*SCALE;
+  switch(t){
+    case 1: // wall/tree
+      ctx.fillStyle="#3a7a3a"; ctx.fillRect(x,y,s,s);
+      ctx.fillStyle="#2c5c2c"; ctx.beginPath(); ctx.arc(x+s/2,y+s/2,s*0.42,0,7); ctx.fill();
+      break;
+    case 2: // path
+      ctx.fillStyle="#dfc98a"; ctx.fillRect(x,y,s,s);
+      break;
+    case 0: // grass
+      ctx.fillStyle="#7cc46a"; ctx.fillRect(x,y,s,s);
+      break;
+    case 3: // tall grass
+      ctx.fillStyle="#4fae4a"; ctx.fillRect(x,y,s,s);
+      ctx.strokeStyle="#2f7c2c"; ctx.lineWidth=Math.max(1,s*0.06);
+      for(let i=0;i<3;i++){
+        const gx = x+s*0.2+i*s*0.28;
+        ctx.beginPath(); ctx.moveTo(gx,y+s*0.9); ctx.lineTo(gx-2,y+s*0.35); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(gx+4,y+s*0.9); ctx.lineTo(gx+6,y+s*0.35); ctx.stroke();
+      }
+      break;
+    case 4: // water
+      ctx.fillStyle="#4a9fe0"; ctx.fillRect(x,y,s,s);
+      break;
+    case 5: // flower
+      ctx.fillStyle="#7cc46a"; ctx.fillRect(x,y,s,s);
+      ctx.fillStyle="#e85a8a"; ctx.beginPath(); ctx.arc(x+s*0.35,y+s*0.4,s*0.12,0,7); ctx.arc(x+s*0.65,y+s*0.6,s*0.12,0,7); ctx.fill();
+      break;
+    case 6: // door
+      ctx.fillStyle="#dfc98a"; ctx.fillRect(x,y,s,s);
+      ctx.fillStyle="#6b4a2c"; ctx.fillRect(x+s*0.2,y,s*0.6,s*0.9);
+      break;
+    case 7: // building top
+      ctx.fillStyle="#c0392b"; ctx.fillRect(x,y,s,s);
+      ctx.fillStyle="#8e2a1f"; ctx.fillRect(x,y+s*0.75,s,s*0.25);
+      break;
+    case 8: // building wall
+      ctx.fillStyle="#e8e0c8"; ctx.fillRect(x,y,s,s);
+      ctx.strokeStyle="#b8ac86"; ctx.strokeRect(x,y,s,s);
+      break;
+    default:
+      ctx.fillStyle="#7cc46a"; ctx.fillRect(x,y,s,s);
+  }
+}
+
+const skinTones = { boy:"#f4c48a", girl:"#f4c48a", man:"#e8b070", nurse:"#f4c48a", prof:"#e8b070" };
+const outfitColors = { boy:"#d84040", girl:"#e050a0", man:"#4060a0", nurse:"#ff8fa8", prof:"#e8e0c8" };
+
+function drawPerson(x,y,dir,type,moving,fc){
+  const s = TILE*SCALE;
+  const bob = moving ? Math.sin((fc||0)*0.6)*s*0.04 : 0;
+  const cx = x+s/2, cy = y+s*0.55+bob;
+  // shadow
+  ctx.fillStyle="rgba(0,0,0,0.25)";
+  ctx.beginPath(); ctx.ellipse(cx, y+s*0.92, s*0.28, s*0.08, 0,0,7); ctx.fill();
+  // body
+  ctx.fillStyle = outfitColors[type]||"#888";
+  ctx.fillRect(x+s*0.28, y+s*0.42+bob, s*0.44, s*0.4);
+  // head
+  ctx.fillStyle = skinTones[type]||"#f4c48a";
+  ctx.beginPath(); ctx.arc(cx, y+s*0.32+bob, s*0.22, 0, 7); ctx.fill();
+  // hair/hat
+  ctx.fillStyle = type==='girl'?"#7a3a1a":type==='nurse'?"#ffffff":"#2a2a2a";
+  ctx.beginPath(); ctx.arc(cx, y+s*0.24+bob, s*0.22, Math.PI, 0); ctx.fill();
+  // direction indicator (simple eyes/face nub)
+  ctx.fillStyle="#222";
+  if(dir==='down') ctx.fillRect(cx-s*0.08,y+s*0.32+bob,s*0.04,s*0.04), ctx.fillRect(cx+s*0.04,y+s*0.32+bob,s*0.04,s*0.04);
+  if(dir==='left') ctx.fillRect(cx-s*0.12,y+s*0.32+bob,s*0.04,s*0.04);
+  if(dir==='right') ctx.fillRect(cx+s*0.08,y+s*0.32+bob,s*0.04,s*0.04);
+  // legs
+  ctx.fillStyle="#333";
+  ctx.fillRect(x+s*0.3,y+s*0.8+bob,s*0.16,s*0.14);
+  ctx.fillRect(x+s*0.54,y+s*0.8+bob,s*0.16,s*0.14);
+}
+
+/* ============================== DIALOG SYSTEM ============================== */
+let dialogQueue = [];
+let dialogCallback = null;
+const textbox = document.getElementById('textbox');
+const textboxContent = document.getElementById('textboxContent');
+function showDialog(lines, cb){
+  dialogQueue = Array.isArray(lines)?lines.slice():[lines];
+  dialogCallback = cb;
+  uiMode='dialog';
+  textbox.style.display='block';
+  nextDialogLine();
+}
+function nextDialogLine(){
+  if(dialogQueue.length===0){
+    textbox.style.display='none';
+    uiMode = state.inBattle ? 'battle' : 'overworld';
+    const cb = dialogCallback; dialogCallback=null;
+    if(cb) cb();
+    return;
+  }
+  const line = dialogQueue.shift().replace(/PLAYER/g, state.playerName);
+  textboxContent.textContent = line;
+}
+function advanceDialog(){
+  if(uiMode==='dialog'){ nextDialogLine(); }
+}
+textbox.addEventListener('click', advanceDialog);
+
+function talkToNpc(n){
+  if(n.id==='oak'){ handleOakInteraction(); return; }
+  if(n.id==='rival'){ handleRivalInteraction(); return; }
+  if(n.id==='nurse'){ handleNurseInteraction(); return; }
+  showDialog(n.text || ["..."]);
+}
+
+/* ============================== STARTER / OAK EVENT ============================== */
+function handleOakInteraction(){
+  if(state.flags.gotStarter){
+    showDialog(["Take good care of your POKéMON!"]);
+    return;
+  }
+  showDialog([
+    "Ah, PLAYER! Come here — I have something for you.",
+    "There are three POKéMON here. Choose the one you like!"
+  ], showStarterChoice);
+}
+function showStarterChoice(){
+  const choices = document.getElementById('choices');
+  const opts = [
+    {key:'flarim', label:'FLARIM (Fire)'},
+    {key:'aquabo', label:'AQUABO (Water)'},
+    {key:'leafuni', label:'LEAFUNI (Grass)'},
+  ];
+  choices.innerHTML = opts.map(o=>`<div data-k="${o.key}">${o.label}</div>`).join('');
+  choices.style.display='block';
+  Array.from(choices.children).forEach(el=>{
+    el.addEventListener('click', ()=>{
+      choices.style.display='none';
+      const mon = makeMon(el.dataset.k, 5);
+      state.party.push(mon);
+      state.flags.gotStarter = true;
+      showDialog([
+        "So you want "+SPECIES[el.dataset.k].name+"?",
+        "PLAYER received "+SPECIES[el.dataset.k].name+"!",
+        "Take care of it, and it'll take care of you!"
+      ]);
+    });
+  });
+}
+
+/* ============================== RIVAL EVENT ============================== */
+function handleRivalInteraction(){
+  if(!state.flags.gotStarter){
+    showDialog(["Hey, PLAYER! Grandpa's lab is that way.","Go get your first POKéMON!"]);
+    return;
+  }
+  if(state.flags.rivalDefeated){
+    showDialog(["Heh. Train hard, I'll be waiting at the next town."]);
+    return;
+  }
+  showDialog([
+    "Hey PLAYER! I heard you got a POKéMON from Gramps.",
+    "Let's see how strong it really is. Battle me!"
+  ], ()=>{
+    startTrainerBattle('rival');
+  });
+}
+
+/* ============================== NURSE ============================== */
+function handleNurseInteraction(){
+  showDialog(["Welcome to the POKéMON CENTER!","We'll heal your POKéMON to full health."], ()=>{
+    state.party.forEach(m=>{ m.hp = m.maxHp; m.fainted=false; });
+    showDialog(["Your POKéMON are fighting fit!"]);
+  });
+}
+
+/* ============================== BATTLE SYSTEM ============================== */
+const battleScreen = document.getElementById('battleScreen');
+const battleCanvas = document.getElementById('battleCanvas');
+const bctx = battleCanvas.getContext('2d');
+const battleLog = document.getElementById('battleLog');
+const battleActions = document.getElementById('battleActions');
+const moveListEl = document.getElementById('moveList');
+
+let battle = null;
+
+function wildEncounterTable(){
+  const m = curMap();
+  if(m===MAPS.route1) return ['ratteck','pidgem','weedle2'];
+  return ['ratteck'];
+}
+function startWildBattle(){
+  const table = wildEncounterTable();
+  const key = table[Math.floor(Math.random()*table.length)];
+  const lvl = 2+Math.floor(Math.random()*4);
+  const enemy = makeMon(key, lvl);
+  openBattle({type:'wild', enemyParty:[enemy]});
+}
+function startTrainerBattle(which){
+  let enemyParty, name;
+  if(which==='rival'){
+    // rival gets counter starter
+    const my = state.party[0].key;
+    const counter = my==='flarim'?'aquabo': my==='aquabo'?'leafuni':'flarim';
+    enemyParty = [makeMon(counter, state.party[0].level+1)];
+    name = "RIVAL";
+  }
+  openBattle({type:'trainer', enemyParty, trainerName:name, onWin:()=>{
+    if(which==='rival') { state.flags.rivalDefeated=true; }
+  }});
+}
+
+function openBattle(cfg){
+  state.inBattle = true;
+  uiMode='battle';
+  battle = {
+    cfg,
+    playerMon: state.party.find(m=>!m.fainted) || state.party[0],
+    enemyIdx: 0,
+    enemyMon: cfg.enemyParty[0],
+    turnBusy: false,
+    ended: false,
+    stageMods: {atk:0,def:0,spd:0, eAtk:0, eDef:0, eSpd:0},
+  };
+  battleScreen.style.display='block';
+  resizeBattleCanvas();
+  setBattleMenuState('main');
+  const introMsg = cfg.type==='wild' ? "Wild "+SPECIES[battle.enemyMon.key].name+" appeared!" :
+    (cfg.trainerName||"Trainer")+" wants to battle!";
+  battleLog.textContent = introMsg;
+  drawBattle();
+}
+function resizeBattleCanvas(){
+  const r = battleCanvas.getBoundingClientRect();
+  battleCanvas.width = r.width; battleCanvas.height = r.height;
+  drawBattle();
+}
+window.addEventListener('resize', resizeBattleCanvas);
+
+function closeBattle(){
+  battleScreen.style.display='none';
+  state.inBattle = false;
+  uiMode='overworld';
+  battle=null;
+  requestAnimationFrame(loop);
+}
+
+function drawBattle(){
+  if(!battle) return;
+  const W=battleCanvas.width, H=battleCanvas.height;
+  bctx.imageSmoothingEnabled=false;
+  const grad = bctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,"#bfe89a"); grad.addColorStop(1,"#8fd070");
+  bctx.fillStyle=grad; bctx.fillRect(0,0,W,H);
+  // ground ellipses
+  bctx.fillStyle="#6bb050";
+  bctx.beginPath(); bctx.ellipse(W*0.78,H*0.42,W*0.16,H*0.07,0,0,7); bctx.fill();
+  bctx.beginPath(); bctx.ellipse(W*0.22,H*0.78,W*0.2,H*0.09,0,0,7); bctx.fill();
+
+  // enemy mon
+  drawMonSprite(battle.enemyMon.key, W*0.78, H*0.42, Math.min(W,H)*0.22, true);
+  drawHpBar(battle.enemyMon, W*0.06, H*0.06, W*0.42, false);
+
+  // player mon
+  drawMonSprite(battle.playerMon.key, W*0.22, H*0.78, Math.min(W,H)*0.28, false);
+  drawHpBar(battle.playerMon, W*0.52, H*0.58, W*0.42, true);
+}
+function drawMonSprite(key, cx, cy, r, isEnemy){
+  const sp = SPECIES[key];
+  bctx.save();
+  bctx.translate(cx,cy);
+  if(isEnemy) bctx.scale(-1,1);
+  bctx.fillStyle="rgba(0,0,0,0.2)";
+  bctx.beginPath(); bctx.ellipse(0, r*0.85, r*0.7,r*0.18,0,0,7); bctx.fill();
+  bctx.fillStyle = sp.color2;
+  bctx.beginPath(); bctx.arc(0,0,r*0.75,0,7); bctx.fill();
+  bctx.fillStyle = sp.color;
+  bctx.beginPath(); bctx.arc(0,r*0.05,r*0.58,0,7); bctx.fill();
+  // eyes
+  bctx.fillStyle="#fff";
+  bctx.beginPath(); bctx.arc(-r*0.2,-r*0.05,r*0.14,0,7); bctx.arc(r*0.2,-r*0.05,r*0.14,0,7); bctx.fill();
+  bctx.fillStyle="#111";
+  bctx.beginPath(); bctx.arc(-r*0.17,-r*0.02,r*0.06,0,7); bctx.arc(r*0.23,-r*0.02,r*0.06,0,7); bctx.fill();
+  bctx.restore();
+}
+function drawHpBar(mon, x, y, w, showNum){
+  const sp = SPECIES[mon.key];
+  const h = 14;
+  bctx.fillStyle="rgba(255,255,255,0.92)";
+  bctx.strokeStyle="#333"; bctx.lineWidth=2;
+  roundRect(bctx,x,y,w,h*2.6,6); bctx.fill(); bctx.stroke();
+  bctx.fillStyle="#111"; bctx.font="bold "+Math.max(10,w*0.055)+"px monospace";
+  bctx.fillText(sp.name+" Lv"+mon.level, x+8, y+h*0.9);
+  const barW = w-16, barX=x+8, barY=y+h*1.3;
+  bctx.fillStyle="#333"; bctx.fillRect(barX,barY,barW,8);
+  const pct = Math.max(0,mon.hp/mon.maxHp);
+  bctx.fillStyle = pct>0.5?"#4caf50":pct>0.2?"#ff9800":"#f44336";
+  bctx.fillRect(barX+1,barY+1,Math.max(0,(barW-2)*pct),6);
+  if(showNum){
+    bctx.fillStyle="#111"; bctx.font="bold "+Math.max(9,w*0.045)+"px monospace";
+    bctx.fillText(mon.hp+"/"+mon.maxHp, barX, barY+22);
+  }
+}
+function roundRect(c,x,y,w,h,r){
+  c.beginPath();
+  c.moveTo(x+r,y);
+  c.arcTo(x+w,y,x+w,y+h,r);
+  c.arcTo(x+w,y+h,x,y+h,r);
+  c.arcTo(x,y+h,x,y,r);
+  c.arcTo(x,y,x+w,y,r);
+  c.closePath();
+}
+
+function setBattleMenuState(m){
+  if(m==='main'){
+    moveListEl.style.display='none';
+    battleActions.style.display='grid';
+    battleLog.textContent = "What will "+state.playerName+" do?";
+  } else if(m==='moves'){
+    battleActions.style.display='none';
+    moveListEl.style.display='flex';
+    renderMoveList();
+  }
+}
+battleActions.addEventListener('click', (e)=>{
+  const b = e.target.closest('.bmbtn');
+  if(!b||battle.turnBusy||battle.ended) return;
+  const a = b.dataset.a;
+  if(a==='fight') setBattleMenuState('moves');
+  else if(a==='run') tryRun();
+  else if(a==='bag') { battleLog.textContent="You don't have any usable items."; }
+  else if(a==='party') { battleLog.textContent="Your team is ready to fight!"; }
+});
+function renderMoveList(){
+  const mon = battle.playerMon;
+  moveListEl.innerHTML = mon.moves.map(mv=>`<div class="movebtn" data-m="${mv}">${mv} <span style="float:right;color:#888;">${MOVES[mv].type}</span></div>`).join('')
+    + `<div class="movebtn" data-m="__back" style="text-align:center;color:#888;">BACK</div>`;
+  Array.from(moveListEl.children).forEach(el=>{
+    el.addEventListener('click', ()=>{
+      if(battle.turnBusy) return;
+      if(el.dataset.m==='__back'){ setBattleMenuState('main'); return; }
+      doTurn(el.dataset.m);
+    });
+  });
+}
+function tryRun(){
+  if(battle.cfg.type==='trainer'){ battleLog.textContent="You can't run from a trainer battle!"; return; }
+  battleLog.textContent="Got away safely!";
+  battle.ended=true;
+  setTimeout(closeBattle, 900);
+}
+
+function typeMultiplier(atkType, defType){
+  const chart = {
+    Fire:{Grass:2,Water:0.5,Fire:0.5,Bug:2},
+    Water:{Fire:2,Grass:0.5,Water:0.5},
+    Grass:{Water:2,Fire:0.5,Grass:0.5,Flying:0.5,Bug:0.5},
+    Normal:{},
+    Flying:{Grass:2,Bug:2},
+    Bug:{Grass:2,Fire:0.5},
+    Poison:{Grass:2},
+  };
+  return (chart[atkType]&&chart[atkType][defType]) || 1;
+}
+function calcDamage(attacker, defender, moveName){
+  const mv = MOVES[moveName];
+  if(mv.power===0) return {dmg:0, fx:mv.fx};
+  const atkSp = SPECIES[attacker.key];
+  const lvl = attacker.level;
+  const base = (((2*lvl/5+2) * mv.power * (attacker.atk/defender.def)) / 50) + 2;
+  const stab = atkSp.type===mv.type ? 1.5 : 1;
+  const eff = typeMultiplier(mv.type, SPECIES[defender.key].type);
+  const rand = 0.85+Math.random()*0.15;
+  const dmg = Math.max(1, Math.floor(base*stab*eff*rand));
+  return {dmg, eff, fx:mv.fx};
+}
+
+function doTurn(playerMove){
+  battle.turnBusy = true;
+  setBattleMenuState('main');
+  const enemyMoves = SPECIES[battle.enemyMon.key];
+  const enemyMoveName = enemyMoves.moves[Math.floor(Math.random()*enemyMoves.moves.length)];
+  const playerFirst = battle.playerMon.spd >= battle.enemyMon.spd;
+  const seq = playerFirst ? [['player',playerMove],['enemy',enemyMoveName]] : [['enemy',enemyMoveName],['player',playerMove]];
+  runSeq(seq, 0);
+}
+function runSeq(seq, i){
+  if(i>=seq.length){ battle.turnBusy=false; checkBattleEnd() || setBattleMenuState('main'); return; }
+  const [who, mv] = seq[i];
+  const attacker = who==='player'?battle.playerMon:battle.enemyMon;
+  const defender = who==='player'?battle.enemyMon:battle.playerMon;
+  if(attacker.fainted || defender.fainted){ runSeq(seq,i+1); return; }
+  const atkName = who==='player'?SPECIES[attacker.key].name:SPECIES[attacker.key].name;
+  const res = calcDamage(attacker, defender, mv);
+  battleLog.textContent = (who==='player'?"":"Foe ")+SPECIES[attacker.key].name+" used "+mv+"!";
+  setTimeout(()=>{
+    if(res.dmg>0){
+      defender.hp = Math.max(0, defender.hp-res.dmg);
+      if(res.eff>1) battleLog.textContent += " It's super effective!";
+      else if(res.eff<1 && res.eff>0) battleLog.textContent += " It's not very effective...";
+    } else if(res.fx){
+      battleLog.textContent += " Stats changed!";
+    }
+    drawBattle();
+    if(defender.hp<=0 && !defender.fainted){
+      defender.fainted = true;
+      setTimeout(()=>{
+        battleLog.textContent = (who==='player'?"Foe ":"")+SPECIES[defender.key].name+" fainted!";
+        drawBattle();
+        if(checkBattleEnd()) return;
+        setTimeout(()=>runSeq(seq,i+1), 900);
+      }, 500);
+      return;
+    }
+    setTimeout(()=>runSeq(seq,i+1), 700);
+  }, 500);
+}
+
+function checkBattleEnd(){
+  if(battle.ended) return true;
+  if(battle.enemyMon.fainted){
+    battle.ended = true;
+    const xpGain = 15 + battle.enemyMon.level*4;
+    battleLog.textContent = "You won! "+SPECIES[battle.playerMon.key].name+" gained "+xpGain+" XP!";
+    grantXp(battle.playerMon, xpGain);
+    setTimeout(()=>{
+      if(battle.cfg.onWin) battle.cfg.onWin();
+      closeBattle();
+    }, 1600);
+    return true;
+  }
+  if(battle.playerMon.fainted){
+    const next = state.party.find(m=>!m.fainted);
+    if(next){
+      battle.playerMon = next;
+      battleLog.textContent = "Go, "+SPECIES[next.key].name+"!";
+      drawBattle();
+      battle.turnBusy=false;
+      setBattleMenuState('main');
+      return true;
+    } else {
+      battle.ended = true;
+      battleLog.textContent = "You have no more POKéMON! Rushed to the POKéMON CENTER...";
+      setTimeout(()=>{
+        state.party.forEach(m=>{ m.hp=m.maxHp; m.fainted=false; });
+        closeBattle();
+        fadeOut(()=>{ enterOverworld('pokecenter', 5,6); fadeIn(); },300);
+      }, 1600);
+      return true;
+    }
+  }
+  return false;
+}
+function grantXp(mon, xp){
+  mon.xp += xp;
+  const need = xpToNext(mon.level);
+  if(mon.xp>=need){
+    mon.xp -= need;
+    mon.level++;
+    const oldMax = mon.maxHp;
+    recalcStats(mon);
+    mon.hp += (mon.maxHp-oldMax);
+    battleLog.textContent += " " + SPECIES[mon.key].name + " grew to Lv"+mon.level+"!";
+  }
+}
+
+/* ============================== BOOT ============================== */
+// nothing else needed; start screen click boots the flow
+
+})();
+</script>
+</body>
+</html>

@@ -11,9 +11,9 @@
         }
         * { margin:0; padding:0; box-sizing:border-box; -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
         body { font-family:'Tahoma','Verdana',sans-serif; background:#000; color:#fff; overflow:hidden; touch-action:none; display:flex; justify-content:center; align-items:center; height:100vh; }
-        #game-container { position:relative; width:100vw; max-width:480px; height:100vh; max-height:720px; background:#000; border:4px solid var(--va-dark-green); border-radius:12px; box-shadow:0 0 20px rgba(90,158,90,0.4); overflow:hidden; }
+        #game-container { position:relative; width:100vw; max-width:480px; height:100vh; max-height:720px; background:#000; border:4px solid var(--va-dark-green); border-radius:12px; box-shadow:0 0 20px rgba(90,158,90,0.4); overflow:hidden; touch-action:none; }
         #game-canvas { display:block; width:100%; height:100%; image-rendering:pixelated; background:#E8F5E0; transition:opacity 0.15s ease; }
-        #touch-layer { position:absolute; top:0; left:0; width:100%; height:100%; z-index:5; background:transparent; }
+        #touch-layer { position:absolute; top:0; left:0; width:100%; height:100%; z-index:5; background:transparent; touch-action:none; }
         #ui-overlay { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:10; }
         .dialog-box { position:absolute; bottom:90px; left:10px; width:calc(100% - 20px); background:#FFF; border:4px solid var(--va-dark-blue); border-radius:8px; padding:15px; color:#303030; font-size:14px; display:none; box-shadow:0 4px 10px rgba(0,0,0,0.2); pointer-events:none; }
         .dialog-box.active { display:block; animation:slideUp 0.2s ease-out; }
@@ -127,7 +127,7 @@
     </div>
 <script>
 // ====================================================================
-// THE VERDANT AWAKENING - EVENT SCRIPTING SYSTEM
+// THE VERDANT AWAKENING - POINTER EVENTS & QA POLISH
 // ====================================================================
 
 const POKEMON_DATA = {
@@ -163,18 +163,25 @@ const TYPE_CHART = {
 function buildVerdantTiles() {
     const W=30, H=91; let t=Array.from({length:H},()=>Array(W).fill('1'));
     const rect=(x,y,w,h,c)=>{for(let i=y;i<y+h;i++)for(let j=x;j<x+w;j++)if(i>=0&&i<H&&j>=0&&j<W)t[i][j]=c;};
-    const pathY=(x,y1,y2,c)=>{for(let y=Math.min(y1,y2);y<=Math.max(y1,y2);y++)if(y>=0&&y<H){t[y][x]=c;t[y][x+1]=c;}};
+    // 1-tile wide paths to ensure NPCs can block them
+    const pathY=(x,y1,y2,c)=>{for(let y=Math.min(y1,y2);y<=Math.max(y1,y2);y++)if(y>=0&&y<H)t[y][x]=c;};
     const pathX=(y,x1,x2,c)=>{for(let x=Math.min(x1,x2);x<=Math.max(x1,x2);x++)if(x>=0&&x<W)t[y][x]=c;};
     const building=(x,y)=>{rect(x,y,5,1,'6');rect(x,y+1,5,3,'5');t[y+3][x+2]='7';t[y+4][x+2]='4';};
+    
+    // Cindermere City (0..14)
     rect(0,0,W,15,'2'); rect(0,0,W,2,'8'); building(4,2); building(20,2);
     pathY(15,0,15,'4'); pathX(6,6,15,'4'); pathX(6,16,22,'4');
+    // Whisper Woods (15..40)
     rect(0,15,W,26,'2'); pathY(14,15,40,'4');
     for(let y=15;y<41;y++)for(let x=0;x<W;x++){if(x!==14){if(Math.random()<0.55&&t[y][x]==='2')t[y][x]='1';}}
     rect(8,22,4,3,'3'); rect(20,30,4,3,'3'); rect(18,24,3,3,'3');
+    // Brookhaven Town (41..55)
     rect(0,41,W,15,'2'); pathY(15,41,55,'4'); building(4,43); building(20,43);
     pathX(47,6,15,'4'); pathX(47,16,22,'4');
+    // Mossy Path (56..75)
     rect(0,56,W,20,'2'); pathY(15,56,75,'4');
     rect(5,60,4,3,'3'); rect(20,65,4,3,'3'); rect(8,70,4,3,'3');
+    // Willowdale Town (76..90)
     rect(0,76,W,15,'2'); rect(0,89,W,2,'0'); building(4,78); building(20,78);
     pathY(15,76,88,'4'); pathX(82,6,15,'4'); pathX(82,16,22,'4');
     return t.map(r=>r.join(''));
@@ -232,9 +239,6 @@ let gameState = {
     dialogQueue:[], currentDialog:null, scriptRunning:false, onBattleEnd:null, onDialogComplete:null
 };
 
-// ====================================================================
-// EVENT SCRIPT SYSTEM
-// ====================================================================
 class EventScript {
     constructor(engine) { this.engine = engine; this.queue = []; this.active = false; }
     
@@ -299,16 +303,15 @@ class EventScript {
                 text: o.text,
                 callback: () => { if(o.callback) o.callback.call(this.engine); this.next(); }
             }));
-            this.engine.queueDialog(cmd.text, options);
-            this.engine.processDialogQueue();
+            gameState.dialogQueue.push({ text: cmd.text, options });
         } else {
-            this.engine.queueDialog(cmd.text);
-            this.engine.onDialogComplete = () => {
-                this.engine.onDialogComplete = null;
+            gameState.dialogQueue.push({ text: cmd.text, options: null });
+            gameState.onDialogComplete = () => {
+                gameState.onDialogComplete = null;
                 this.next();
             };
-            this.engine.processDialogQueue();
         }
+        this.engine.processDialogQueue();
     }
     
     spawnNPC(cmd) {
@@ -327,8 +330,8 @@ class EventScript {
     
     startBattle(cmd) {
         this.engine.startBattle(cmd.species, cmd.level, cmd.type, cmd.trainer);
-        this.engine.onBattleEnd = () => {
-            this.engine.onBattleEnd = null;
+        gameState.onBattleEnd = () => {
+            gameState.onBattleEnd = null;
             this.next();
         };
     }
@@ -354,9 +357,6 @@ class EventScript {
     }
 }
 
-// ====================================================================
-// GAME ENGINE
-// ====================================================================
 class GameEngine {
     constructor() {
         this.canvas=document.getElementById('game-canvas');
@@ -370,8 +370,6 @@ class GameEngine {
         this.showSign("WILLOWDALE TOWN");
         this.startGameLoop();
         document.getElementById('loading').style.display='none';
-        
-        // Run intro script
         setTimeout(() => this.runIntroScript(), 500);
     }
 
@@ -389,20 +387,26 @@ class GameEngine {
 
     setupInput() {
         const tl=document.getElementById('touch-layer');
+        
         const handleWorldTouch = (cx, cy) => {
-            if(gameState.inBattle || gameState.transitioning || gameState.scriptRunning) return;
+            if(gameState.inBattle || gameState.transitioning) return;
+            
             if(gameState.currentDialog || gameState.dialogQueue.length > 0) {
                 const optDisplay = document.getElementById('dialog-options').style.display;
                 if (optDisplay !== 'grid') { this.advanceDialog(); }
                 return;
             }
-            if(this.isUIActive()) return;
+            
+            if(this.isUIActive() || gameState.scriptRunning) return;
+
             const rect=this.canvas.getBoundingClientRect();
             const tx=Math.floor((cx-rect.left+this.camera.x)/this.tileSize);
             const ty=Math.floor((cy-rect.top+this.camera.y)/this.tileSize);
             if(tx<0||ty<0||tx>=this.currentMap.width||ty>=this.currentMap.height)return;
+            
             const p=gameState.player;
             let targetNpc=this.currentMap.npcs?this.currentMap.npcs.find(n=>n.x===tx&&n.y===ty&&n.visible):null;
+            
             if(targetNpc){
                 const adj=[{x:tx,y:ty-1,dir:'down'},{x:tx,y:ty+1,dir:'up'},{x:tx-1,y:ty,dir:'right'},{x:tx+1,y:ty,dir:'left'}];
                 let best=null,bd=null;
@@ -420,10 +424,11 @@ class GameEngine {
                 }
             }
         };
-        tl.addEventListener('touchstart',e=>{e.preventDefault();handleWorldTouch(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
-        tl.addEventListener('touchmove',e=>{e.preventDefault();handleWorldTouch(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
-        tl.addEventListener('mousedown',e=>handleWorldTouch(e.clientX,e.clientY));
-        tl.addEventListener('mousemove',e=>{if(e.buttons===1)handleWorldTouch(e.clientX,e.clientY);});
+
+        // Pointer Events (Universal for Mouse and Touch)
+        tl.addEventListener('pointerdown', e => { e.preventDefault(); handleWorldTouch(e.clientX, e.clientY); });
+        tl.addEventListener('pointermove', e => { if(e.buttons === 1) { e.preventDefault(); handleWorldTouch(e.clientX, e.clientY); } });
+        
         document.getElementById('menu-btn').addEventListener('click',()=>this.toggleMenu());
         document.querySelectorAll('.menu-item').forEach(item=>item.addEventListener('click',()=>{
             document.getElementById('menu-screen').classList.remove('active');
@@ -529,7 +534,6 @@ class GameEngine {
 
     update(dt){
         const p=gameState.player;
-        // Update player movement
         if(p.moving){
             p.moveProgress+=dt*this.moveSpeed;
             if(p.moveProgress>=1){
@@ -537,7 +541,6 @@ class GameEngine {
                 this.checkTileEvents();
             }
         }
-        // Update NPC movement
         if(this.currentMap.npcs){
             this.currentMap.npcs.forEach(npc => {
                 if(npc.moving){
@@ -557,7 +560,6 @@ class GameEngine {
                 }
             });
         }
-        // Player path following (only if not script-controlled)
         if(!p.moving && !gameState.transitioning && !gameState.currentDialog && gameState.dialogQueue.length===0 && !gameState.scriptRunning){
             if(p.path && p.path.length > 0){
                 const next = p.path.shift();
@@ -569,7 +571,6 @@ class GameEngine {
                 p.interactTarget = null;
             }
         }
-        // Script-controlled player movement
         if(!p.moving && !gameState.transitioning && gameState.scriptRunning){
             if(p.path && p.path.length > 0){
                 const next = p.path.shift();
@@ -692,7 +693,6 @@ class GameEngine {
         } else if(npc.sprite==='witherGrunt'){
             if(!gameState.flags.witherDefeated){
                 this.script.run([
-                    { type:'moveNPC', id:'witherGrunt', x:14, y:20 },
                     { type:'dialog', text:"WITHER GRUNT: Halt! This forest belongs to Team Wither!" },
                     { type:'dialog', text:"WITHER GRUNT: No one passes without a battle! Go, Mouselet!" },
                     { type:'startBattle', species:'mouselet', level:8, type:'trainer', trainer:'witherGrunt' },
@@ -713,12 +713,10 @@ class GameEngine {
         } else if(npc.sprite==='ember'){
             if(!gameState.flags.emberDefeated){
                 this.script.run([
-                    { type:'moveNPC', id:'ember', x:7, y:3 },
+                    { type:'moveNPC', id:'ember', x:7, y:5 },
                     { type:'dialog', text:"EMBER: So, you've made it to Cindermere Gym." },
                     { type:'dialog', text:"EMBER: I am Ember, the Gym Leader. My Pokémon burn with an unquenchable passion!" },
-                    { type:'dialog', text:"EMBER: Show me your spirit! Battle me!", options:[
-                        {text:"Start Battle",callback:function(){ /* handled by script continuation */ }}
-                    ]},
+                    { type:'dialog', text:"EMBER: Show me your spirit! Battle me!" },
                     { type:'startBattle', species:'flambear', level:12, type:'trainer', trainer:'ember' },
                     { type:'dialog', text:"EMBER: Incredible! Your bond with your Pokémon is strong." },
                     { type:'dialog', text:"EMBER: You've earned the Ember Badge! Take it with pride." },
@@ -737,9 +735,6 @@ class GameEngine {
                 this.queueDialog("EMBER: You've earned the Ember Badge. The Verdant region is vast — keep exploring!");
                 this.processDialogQueue();
             }
-        } else if(npc.sprite==='finn'){
-            this.queueDialog(npc.dialog || "FINN: Hey there!");
-            this.processDialogQueue();
         }
     }
 
@@ -752,7 +747,8 @@ class GameEngine {
         
         const rival = species==='florafa'?'pyrolyn':species==='pyrolyn'?'aquapup':'florafa';
         
-        this.script.run([
+        // Push to script queue instead of run to prevent interrupting the current script
+        this.script.queue.push(
             { type:'dialog', text:`You chose ${POKEMON_DATA[species].name}!` },
             { type:'spawnNPC', npc:{x:7,y:8,sprite:'finn',color:'#4080C0',dir:'up'} },
             { type:'moveNPC', id:'finn', x:7, y:6 },
@@ -770,7 +766,7 @@ class GameEngine {
             { type:'dialog', text:"HAZEL: Now go home and tell your mother. She'll want to hear about this!" },
             { type:'completeQuest', quest:'rivalBattle' },
             { type:'setFlag', flag:'rivalBattleDone', value:true }
-        ]);
+        );
     }
 
     createPokemon(species,level){
@@ -907,7 +903,6 @@ class GameEngine {
                 this.queueDialog("You scurried back home...");
                 this.processDialogQueue();
             }
-            // Notify script system if waiting
             if(gameState.onBattleEnd){ const cb = gameState.onBattleEnd; gameState.onBattleEnd = null; cb(); }
         },2000);
     }
@@ -1035,7 +1030,6 @@ class GameEngine {
         document.getElementById('player-exp').style.width=`${(p.exp/p.expToNext)*100}%`;
     }
 
-    // --- RENDER ---
     render(){
         this.ctx.fillStyle='#000';
         this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height);
@@ -1113,7 +1107,6 @@ class GameEngine {
                 if(npc.dir==='down'){this.ctx.fillRect(x+12,y+10,2,2);this.ctx.fillRect(x+18,y+10,2,2);}
                 else if(npc.dir==='left'){this.ctx.fillRect(x+10,y+10,2,2);}
                 else if(npc.dir==='right'){this.ctx.fillRect(x+20,y+10,2,2);}
-                else if(npc.dir==='up'){} // No eyes seen from back
             }
         });
     }

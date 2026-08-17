@@ -31,7 +31,7 @@
         #menu-btn:active { transform:scale(0.9); background:var(--va-green); }
         #battle-screen { position:absolute; top:0; left:0; width:100%; height:100%; background:#F8F8F8; display:none; z-index:100; flex-direction:column; justify-content:space-between; padding:10px; }
         #battle-screen.active { display:flex; }
-        .battle-top { display:flex; justify-content:space-between; align-items:flex-start; height:60%; position:relative; }
+        .battle-top { display:flex; justify-content:space-between; align-items:flex-start; height:55%; position:relative; }
         .pokemon-sprite { width:120px; height:120px; background-size:contain; background-repeat:no-repeat; background-position:center; border-radius:50%; border:4px solid #FFF; box-shadow:0 0 15px rgba(0,0,0,0.2); }
         #enemy-sprite { position:absolute; top:40px; right:30px; width:100px; height:100px; }
         #player-sprite { position:absolute; bottom:20px; left:30px; width:140px; height:140px; }
@@ -43,11 +43,13 @@
         .stat-fill { height:100%; background:var(--va-amber); transition:width 0.5s; width:100%; }
         .exp-bar { height:4px; background:#303030; border-radius:2px; overflow:hidden; width:100%; }
         .exp-fill { height:100%; background:#6080D0; transition:width 0.5s; width:100%; }
-        .battle-bottom { background:#FFF; border:3px solid var(--va-dark-blue); border-radius:8px; height:35%; padding:15px; display:flex; color:#303030; align-items:center; }
-        #battle-log { font-size:14px; width:50%; font-weight:bold; padding-right:10px; }
-        .battle-menu { width:50%; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-        .battle-option { background:#FFF; border:2px solid var(--va-blue); color:var(--va-dark-blue); padding:12px; border-radius:4px; cursor:pointer; text-align:center; font-weight:bold; font-size:14px; }
+        .battle-bottom { background:#FFF; border:3px solid var(--va-dark-blue); border-radius:8px; height:40%; padding:15px; display:flex; flex-direction:column; color:#303030; justify-content:space-between; }
+        #battle-log { font-size:14px; font-weight:bold; padding-right:10px; height:40px; overflow-y:auto; }
+        .battle-menu { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+        .battle-option { background:#FFF; border:2px solid var(--va-blue); color:var(--va-dark-blue); padding:8px; border-radius:4px; cursor:pointer; text-align:center; font-weight:bold; font-size:14px; display:flex; flex-direction:column; justify-content:center; align-items:center; }
         .battle-option:active { background:#E0E0F0; }
+        .opt-name { font-size:14px; margin-bottom:2px; }
+        .opt-desc { font-size:10px; font-weight:normal; color:#666; line-height:1.1; }
         #menu-screen, #bag-screen, #pokemon-screen, #quest-screen { position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:none; z-index:90; padding:20px; justify-content:center; align-items:center; }
         #menu-screen.active, #bag-screen.active, #pokemon-screen.active, #quest-screen.active { display:flex; }
         .menu-list { list-style:none; width:180px; background:#FFF; border:4px solid var(--va-dark-blue); border-radius:8px; padding:10px; margin-left:auto; margin-bottom:40px; }
@@ -68,11 +70,17 @@
         .quest-entry .q-desc { font-size:13px; color:#666; margin-bottom:6px; }
         .quest-entry .q-status { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold; }
         .q-status.active { background:#FFE0A0; color:#A06000; } .q-status.done { background:#C0E0A0; color:#306000; }
-        .pokemon-card { background:#F8F8F8; border:2px solid #DDD; border-radius:8px; padding:15px; margin-bottom:10px; display:flex; align-items:center; gap:15px; color:#303030; }
+        .pokemon-card { background:#F8F8F8; border:2px solid #DDD; border-radius:8px; padding:15px; margin-bottom:10px; display:flex; flex-direction:column; gap:10px; color:#303030; }
+        .pkmn-top { display:flex; align-items:center; gap:15px; }
         .pokemon-sprite-small { width:64px; height:64px; border-radius:50%; border:2px solid #303030; flex-shrink:0; }
         .pokemon-info { flex-grow:1; }
         .pokemon-info h3 { margin-bottom:5px; color:var(--va-dark-blue); }
         .pokemon-stats { font-size:12px; color:#555; display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+        .move-list { border-top:1px solid #CCC; padding-top:10px; }
+        .move-list h4 { margin-bottom:5px; color:var(--va-dark-blue); }
+        .move-entry { font-size:12px; margin-bottom:6px; padding-bottom:6px; border-bottom:1px dashed #EEE; }
+        .move-entry b { color:#333; }
+        .move-type { font-size:10px; background:#EEE; padding:1px 4px; border-radius:3px; margin-left:5px; }
         .loading-screen { position:absolute; top:0; left:0; width:100%; height:100%; background:#FFF; display:flex; justify-content:center; align-items:center; z-index:1000; flex-direction:column; }
         .loading-text { font-size:24px; color:var(--va-green); margin-bottom:20px; font-weight:bold; letter-spacing:2px; }
         #fade-overlay { position:absolute; top:0; left:0; width:100%; height:100%; background:#000; z-index:200; opacity:0; pointer-events:none; transition:opacity 0.3s ease; }
@@ -127,9 +135,10 @@
     </div>
 <script>
 // ====================================================================
-// THE VERDANT AWAKENING - POINTER EVENTS & QA POLISH
+// MODULAR GAME ARCHITECTURE
 // ====================================================================
 
+// --- DATA ---
 const POKEMON_DATA = {
     florafa:    { name:"FLORAFA",    types:["Grass"], baseStats:{hp:45,atk:49,def:49,spd:45,spAtk:65,spDef:65}, expYield:64, color:'#90C890', evolveLevel:16, evolveTo:"floramander", learnset:{1:"tackle",1:"growl",7:"vineWhip"} },
     floramander:{ name:"FLORAMANDER",types:["Grass"], baseStats:{hp:60,atk:62,def:63,spd:60,spAtk:80,spDef:80}, expYield:142, color:'#68A868', learnset:{1:"tackle",1:"growl",7:"vineWhip",16:"razorLeaf"} },
@@ -144,12 +153,17 @@ const POKEMON_DATA = {
 };
 
 const MOVE_DATA = {
-    tackle:{name:"Tackle",type:"Normal",power:35,category:"Physical"}, scratch:{name:"Scratch",type:"Normal",power:35,category:"Physical"},
-    growl:{name:"Growl",type:"Normal",power:0,category:"Status"}, tailWhip:{name:"Tail Whip",type:"Normal",power:0,category:"Status"},
-    stringShot:{name:"String Shot",type:"Bug",power:0,category:"Status"}, ember:{name:"Ember",type:"Fire",power:40,category:"Special"},
-    vineWhip:{name:"Vine Whip",type:"Grass",power:45,category:"Physical"}, waterGun:{name:"Water Gun",type:"Water",power:40,category:"Special"},
-    razorLeaf:{name:"Razor Leaf",type:"Grass",power:55,category:"Physical"}, flameBurst:{name:"Flame Burst",type:"Fire",power:70,category:"Special"},
-    aquaTail:{name:"Aqua Tail",type:"Water",power:90,category:"Physical"}
+    tackle:{name:"Tackle",type:"Normal",power:35,category:"Physical",desc:"A physical attack in which the user charges and slams into the target."}, 
+    scratch:{name:"Scratch",type:"Normal",power:35,category:"Physical",desc:"Hard, pointed, sharp claws rake the target to inflict damage."},
+    growl:{name:"Growl",type:"Normal",power:0,category:"Status",desc:"The user growls in an endearing way, lowering the foe's Attack stat."}, 
+    tailWhip:{name:"Tail Whip",type:"Normal",power:0,category:"Status",desc:"The user wags its tail cutely, lowering the foe's Defense stat."},
+    stringShot:{name:"String Shot",type:"Bug",power:0,category:"Status",desc:"The user spits a sticky web to entangle the foe, lowering Speed."}, 
+    ember:{name:"Ember",type:"Fire",power:40,category:"Special",desc:"The user attacks with a small flame. May leave a burn."},
+    vineWhip:{name:"Vine Whip",type:"Grass",power:45,category:"Physical",desc:"The user strikes the target with slender, whiplike vines."},
+    waterGun:{name:"Water Gun",type:"Water",power:40,category:"Special",desc:"The user squirts water from its mouth at the foe."},
+    razorLeaf:{name:"Razor Leaf",type:"Grass",power:55,category:"Physical",desc:"Sharp-edged leaves are launched to slash at the foe."},
+    flameBurst:{name:"Flame Burst",type:"Fire",power:70,category:"Special",desc:"The user creates a burst of flame that engulfs the target."},
+    aquaTail:{name:"Aqua Tail",type:"Water",power:90,category:"Physical",desc:"The user attacks by swinging its tail as if it were a mighty wave."}
 };
 
 const TYPE_CHART = {
@@ -160,28 +174,22 @@ const TYPE_CHART = {
     Ghost:{Normal:0,Psychic:2,Ghost:2,Dark:0.5}
 };
 
+// --- MAP GENERATION ---
 function buildVerdantTiles() {
     const W=30, H=91; let t=Array.from({length:H},()=>Array(W).fill('1'));
     const rect=(x,y,w,h,c)=>{for(let i=y;i<y+h;i++)for(let j=x;j<x+w;j++)if(i>=0&&i<H&&j>=0&&j<W)t[i][j]=c;};
-    // 1-tile wide paths to ensure NPCs can block them
     const pathY=(x,y1,y2,c)=>{for(let y=Math.min(y1,y2);y<=Math.max(y1,y2);y++)if(y>=0&&y<H)t[y][x]=c;};
     const pathX=(y,x1,x2,c)=>{for(let x=Math.min(x1,x2);x<=Math.max(x1,x2);x++)if(x>=0&&x<W)t[y][x]=c;};
     const building=(x,y)=>{rect(x,y,5,1,'6');rect(x,y+1,5,3,'5');t[y+3][x+2]='7';t[y+4][x+2]='4';};
-    
-    // Cindermere City (0..14)
     rect(0,0,W,15,'2'); rect(0,0,W,2,'8'); building(4,2); building(20,2);
     pathY(15,0,15,'4'); pathX(6,6,15,'4'); pathX(6,16,22,'4');
-    // Whisper Woods (15..40)
     rect(0,15,W,26,'2'); pathY(14,15,40,'4');
     for(let y=15;y<41;y++)for(let x=0;x<W;x++){if(x!==14){if(Math.random()<0.55&&t[y][x]==='2')t[y][x]='1';}}
     rect(8,22,4,3,'3'); rect(20,30,4,3,'3'); rect(18,24,3,3,'3');
-    // Brookhaven Town (41..55)
     rect(0,41,W,15,'2'); pathY(15,41,55,'4'); building(4,43); building(20,43);
     pathX(47,6,15,'4'); pathX(47,16,22,'4');
-    // Mossy Path (56..75)
     rect(0,56,W,20,'2'); pathY(15,56,75,'4');
     rect(5,60,4,3,'3'); rect(20,65,4,3,'3'); rect(8,70,4,3,'3');
-    // Willowdale Town (76..90)
     rect(0,76,W,15,'2'); rect(0,89,W,2,'0'); building(4,78); building(20,78);
     pathY(15,76,88,'4'); pathX(82,6,15,'4'); pathX(82,16,22,'4');
     return t.map(r=>r.join(''));
@@ -221,6 +229,7 @@ const MAPS = {
     cindermereGym: buildInterior("CINDERMERE GYM",22,6,{x:7,y:4,sprite:'ember',color:'#E08040',dir:'down',moving:false,moveProgress:0,path:[],visible:true})
 };
 
+// --- GLOBAL STATE ---
 let gameState = {
     currentMap:'overworld',
     player:{x:15,y:85,dir:'up',moving:false,tx:15,ty:85,moveProgress:0,path:[],interactTarget:null,onPathComplete:null},
@@ -236,17 +245,66 @@ let gameState = {
         beatEmber:{name:"Ember's Trial",desc:"Defeat Gym Leader Ember",done:false}
     },
     inBattle:false, battleData:null, battleLock:false, transitioning:false,
-    dialogQueue:[], currentDialog:null, scriptRunning:false, onBattleEnd:null, onDialogComplete:null
+    dialogQueue:[], currentDialog:null, scriptRunning:false, onBattleEnd:null, onDialogComplete:null,
+    clickMarker:{x:-1,y:-1,alpha:0}
 };
 
-class EventScript {
+// --- PATHFINDING LOGIC ---
+const Pathfinder = {
+    findPath(sx,sy,tx,ty,ignorePlayer=false){
+        if(sx===tx&&sy===ty)return[];
+        const q=[[sx,sy]],vis=new Set([`${sx},${sy}`]),par={},dirs=[[0,-1],[0,1],[-1,0],[1,0]];
+        while(q.length){
+            let[cx,cy]=q.shift();
+            if(cx===tx&&cy===ty){let path=[],c=`${tx},${ty}`;while(c!==`${sx},${sy}`){let[x,y]=c.split(',').map(Number);path.unshift({x,y});c=par[c];}return path;}
+            for(let[dx,dy]of dirs){
+                let nx=cx+dx,ny=cy+dy,k=`${nx},${ny}`;
+                if(nx>=0&&nx<MAPS[gameState.currentMap].width&&ny>=0&&ny<MAPS[gameState.currentMap].height&&!vis.has(k)){
+                    if(this.isWalkable(nx,ny,ignorePlayer)||(nx===tx&&ny===ty)){vis.add(k);par[k]=`${cx},${cy}`;q.push([nx,ny]);}
+                }
+            }
+        }
+        return null;
+    },
+    isWalkable(x,y,ignorePlayer=false){
+        const map = MAPS[gameState.currentMap];
+        if(y<0||y>=map.height||x<0||x>=map.width)return false;
+        const tile=map.tiles[y][x];
+        if(['0','1','5','6','8'].includes(tile))return false;
+        if(!ignorePlayer && gameState.player.x===x && gameState.player.y===y) return false;
+        if(map.npcs){
+            for(let n of map.npcs){
+                if(n.x===x&&n.y===y&&n.visible){
+                    if(n.sprite==='witherGrunt'&&!gameState.flags.witherDefeated)return false;
+                    if(n.defeatFlag&&gameState.flags[n.defeatFlag])return true;
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+};
+
+// --- EVENT SCRIPT SYSTEM ---
+class ScriptSystem {
     constructor(engine) { this.engine = engine; this.queue = []; this.active = false; }
     
     run(script) {
-        this.queue = [...script];
-        this.active = true;
-        gameState.scriptRunning = true;
-        this.next();
+        this.queue.push(...script);
+        if (!this.active) {
+            this.active = true;
+            gameState.scriptRunning = true;
+            this.next();
+        }
+    }
+    
+    abort() {
+        this.queue = [];
+        this.active = false;
+        gameState.scriptRunning = false;
+        gameState.dialogQueue = [];
+        gameState.currentDialog = null;
+        UIManager.hideDialog();
     }
     
     next() {
@@ -279,18 +337,21 @@ class EventScript {
     }
     
     moveNPC(cmd) {
-        const npc = this.findNPC(cmd.id);
+        const npc = MAPS[gameState.currentMap].npcs.find(n => n.sprite === cmd.id);
         if (!npc) { this.next(); return; }
-        const path = this.engine.findPath(npc.x, npc.y, cmd.x, cmd.y);
+        const path = Pathfinder.findPath(npc.x, npc.y, cmd.x, cmd.y, false);
         if (path && path.length > 0) {
             npc.path = path;
             npc.onPathComplete = () => this.next();
-        } else { this.next(); }
+        } else {
+            npc.x = cmd.x; npc.y = cmd.y; // Teleport fallback
+            this.next();
+        }
     }
     
     movePlayer(cmd) {
         const p = gameState.player;
-        const path = this.engine.findPath(p.x, p.y, cmd.x, cmd.y);
+        const path = Pathfinder.findPath(p.x, p.y, cmd.x, cmd.y, true);
         if (path && path.length > 0) {
             p.path = path;
             p.onPathComplete = () => this.next();
@@ -315,21 +376,21 @@ class EventScript {
     }
     
     spawnNPC(cmd) {
-        if (!this.engine.currentMap.npcs) this.engine.currentMap.npcs = [];
+        if (!MAPS[gameState.currentMap].npcs) MAPS[gameState.currentMap].npcs = [];
         const npc = {...cmd.npc, moving:false, moveProgress:0, path:[], visible:true, onPathComplete:null};
-        this.engine.currentMap.npcs.push(npc);
+        MAPS[gameState.currentMap].npcs.push(npc);
         this.next();
     }
     
     despawnNPC(cmd) {
-        if (this.engine.currentMap.npcs) {
-            this.engine.currentMap.npcs = this.engine.currentMap.npcs.filter(n => n.sprite !== cmd.id);
+        if (MAPS[gameState.currentMap].npcs) {
+            MAPS[gameState.currentMap].npcs = MAPS[gameState.currentMap].npcs.filter(n => n.sprite !== cmd.id);
         }
         this.next();
     }
     
     startBattle(cmd) {
-        this.engine.startBattle(cmd.species, cmd.level, cmd.type, cmd.trainer);
+        this.engine.startBattle(cmd.species, cmd.level, cmd.battleType, cmd.trainer);
         gameState.onBattleEnd = () => {
             gameState.onBattleEnd = null;
             this.next();
@@ -339,7 +400,7 @@ class EventScript {
     faceDir(cmd) {
         if (cmd.id === 'player') { gameState.player.dir = cmd.dir; }
         else {
-            const npc = this.findNPC(cmd.id);
+            const npc = MAPS[gameState.currentMap].npcs.find(n => n.sprite === cmd.id);
             if (npc) npc.dir = cmd.dir;
         }
         this.next();
@@ -350,37 +411,301 @@ class EventScript {
         overlay.style.opacity = cmd.opacity;
         setTimeout(() => this.next(), cmd.duration || 300);
     }
-    
-    findNPC(id) {
-        if (!this.engine.currentMap.npcs) return null;
-        return this.engine.currentMap.npcs.find(n => n.sprite === id);
-    }
 }
 
+// --- UI MANAGER ---
+const UIManager = {
+    showDialog(text, options=null){
+        const box=document.getElementById('dialog-box');
+        const txt=document.getElementById('dialog-text');
+        const opt=document.getElementById('dialog-options');
+        const arrow=document.querySelector('.dialog-arrow');
+        if(text === null && options){ txt.textContent = ""; } else { txt.textContent=text; }
+        opt.innerHTML='';
+        if(options){
+            opt.style.display='grid';arrow.style.display='none';
+            options.forEach(o=>{
+                const b=document.createElement('div');b.className='dialog-option';b.textContent=o.text;
+                b.onclick=()=>{
+                    box.classList.remove('active');
+                    gameState.currentDialog=null;
+                    if(o.callback) o.callback.call(game.engine); 
+                    game.processDialogQueue();
+                };
+                opt.appendChild(b);
+            });
+        } else {
+            opt.style.display='none';arrow.style.display='block';
+        }
+        box.classList.add('active');
+    },
+    hideDialog() {
+        document.getElementById('dialog-box').classList.remove('active');
+    },
+    showSign(text){const s=document.getElementById('location-sign');s.textContent=text;s.classList.add('active');setTimeout(()=>s.classList.remove('active'),2000);},
+    logBattle(msg){document.getElementById('battle-log').textContent=msg;},
+    updateBattleUI(){
+        const p=gameState.battleData.player,e=gameState.battleData.enemy;
+        document.getElementById('player-hp').style.width=`${(p.currentHp/p.stats.hp)*100}%`;
+        document.getElementById('enemy-hp').style.width=`${(e.currentHp/e.stats.hp)*100}%`;
+        document.getElementById('player-exp').style.width=`${(p.exp/p.expToNext)*100}%`;
+    },
+    isUIActive(){
+        return document.getElementById('menu-screen').classList.contains('active')||
+               document.getElementById('bag-screen').classList.contains('active')||
+               document.getElementById('pokemon-screen').classList.contains('active')||
+               document.getElementById('quest-screen').classList.contains('active');
+    }
+};
+
+// --- BATTLE SYSTEM ---
+const BattleSystem = {
+    createPokemon(species,level){
+        const d=POKEMON_DATA[species];
+        const stats=game.calculateStats(d.baseStats,level);
+        let moves = [];
+        if(d.learnset){
+            for(let lvl=1; lvl<=level; lvl++){
+                if(d.learnset[lvl]){
+                    let mv = d.learnset[lvl];
+                    if(!moves.some(m => m.name === MOVE_DATA[mv].name)){
+                        if(moves.length < 4) moves.push({...MOVE_DATA[mv]});
+                        else moves[3] = {...MOVE_DATA[mv]};
+                    }
+                }
+            }
+        }
+        if(moves.length === 0) moves.push({...MOVE_DATA["tackle"]}); // Fallback
+        return{species,name:d.name,level,stats,currentHp:stats.hp,types:d.types,color:d.color,moves,exp:0,expToNext:Math.floor(Math.pow(level,3))};
+    },
+
+    startBattle(species,level,type,trainerName){
+        gameState.inBattle=true;gameState.battleLock=false;
+        const enemy=this.createPokemon(species,level);
+        gameState.battleData={type,trainer:trainerName||null,player:gameState.party[0],enemy};
+        document.getElementById('enemy-name').textContent=enemy.name;
+        document.getElementById('enemy-lvl').textContent=`Lv.${enemy.level}`;
+        document.getElementById('player-name').textContent=gameState.party[0].name;
+        document.getElementById('player-lvl').textContent=`Lv.${gameState.party[0].level}`;
+        document.getElementById('enemy-sprite').style.background=enemy.color;
+        document.getElementById('player-sprite').style.background=gameState.party[0].color;
+        document.getElementById('battle-screen').classList.add('active');
+        this.resetBattleMenu();
+        UIManager.updateBattleUI();
+        UIManager.logBattle(`A ${type==='wild'?'wild ':''}${enemy.name} appeared!`);
+    },
+
+    resetBattleMenu(){
+        const m=document.getElementById('battle-menu');
+        m.innerHTML=`<div class="battle-option" data-act="fight">FIGHT</div><div class="battle-option" data-act="bag">BAG</div><div class="battle-option" data-act="run">RUN</div>`;
+        m.querySelectorAll('.battle-option').forEach(b=>b.addEventListener('click',()=>{
+            const a=b.dataset.act;
+            if(a==='fight')this.showFightMenu();
+            else if(a==='bag')game.openBagInBattle();
+            else if(a==='run')this.battleAction('run');
+        }));
+    },
+
+    showFightMenu(){
+        const m=document.getElementById('battle-menu');m.innerHTML='';
+        gameState.battleData.player.moves.forEach((mv,i)=>{
+            const b=document.createElement('div');b.className='battle-option';
+            b.innerHTML=`<span class="opt-name">${mv.name}</span><span class="opt-desc">${mv.desc.substring(0, 40)}...</span>`;
+            b.addEventListener('click',()=>this.executeTurn(i));
+            m.appendChild(b);
+        });
+        const back=document.createElement('div');back.className='battle-option';
+        back.innerHTML=`<span class="opt-name">BACK</span><span class="opt-desc">Return to main menu.</span>`;
+        back.addEventListener('click',()=>this.resetBattleMenu());
+        m.appendChild(back);
+    },
+
+    executeTurn(mi){
+        if(gameState.battleLock)return;gameState.battleLock=true;
+        const p=gameState.battleData.player,e=gameState.battleData.enemy;
+        const pm=p.moves[mi];
+        const em=this.chooseEnemyMove(e,p);
+        const first=p.stats.spd>=e.stats.spd;
+        const sequence = () => {
+            if(first){
+                this.executeMove(p,e,pm);
+                if(e.currentHp>0){
+                    setTimeout(()=>{this.executeMove(e,p,em);if(p.currentHp<=0)this.endBattle("lose");else{gameState.battleLock=false;this.resetBattleMenu();}},1500);
+                } else this.endBattle("win");
+            } else {
+                this.executeMove(e,p,em);
+                if(p.currentHp>0){
+                    setTimeout(()=>{this.executeMove(p,e,pm);if(e.currentHp<=0)this.endBattle("win");else{gameState.battleLock=false;this.resetBattleMenu();}},1500);
+                } else this.endBattle("lose");
+            }
+        };
+        sequence();
+    },
+
+    chooseEnemyMove(attacker, defender) {
+        if (!attacker.moves || attacker.moves.length === 0) return MOVE_DATA["tackle"]; // Fallback
+        if (Math.random() < 0.2) return attacker.moves[Math.floor(Math.random() * attacker.moves.length)];
+        let bestMove = null, bestScore = -1;
+        for (let move of attacker.moves) {
+            let score = 0;
+            if (move.power > 0) {
+                let typeMult = 1;
+                defender.types.forEach(t => { if (TYPE_CHART[move.type] && TYPE_CHART[move.type][t]) typeMult *= TYPE_CHART[move.type][t]; });
+                const stab = attacker.types.includes(move.type) ? 1.5 : 1;
+                score = move.power * typeMult * stab;
+                if (typeMult === 0) score = -1;
+            } else { score = 1; }
+            if (score > bestScore) { bestScore = score; bestMove = move; }
+        }
+        if (!bestMove || bestScore <= 0) return attacker.moves[Math.floor(Math.random() * attacker.moves.length)];
+        return bestMove;
+    },
+
+    executeMove(att,def,move){
+        UIManager.logBattle(`${att.name} used ${move.name}!`);
+        if(move.power>0){
+            const aS=att.stats.atk,dS=def.stats.def;
+            let tm=1;
+            def.types.forEach(t=>{if(TYPE_CHART[move.type]&&TYPE_CHART[move.type][t])tm*=TYPE_CHART[move.type][t];});
+            const stab=att.types.includes(move.type)?1.5:1;
+            const dmg=Math.max(1,Math.floor((((2*att.level/5+2)*move.power*(aS/dS))/50+2)*tm*stab));
+            def.currentHp=Math.max(0,def.currentHp-dmg);
+            if(tm>1)UIManager.logBattle("It's super effective!");
+            else if(tm<1&&tm>0)UIManager.logBattle("It's not very effective...");
+            else if(tm===0)UIManager.logBattle("It doesn't affect the foe...");
+        }
+        UIManager.updateBattleUI();
+    },
+
+    endBattle(result){
+        const msg = result==="win" ? "You won!" : result==="lose" ? "You lost..." : result==="catch" ? "Gotcha!" : "Got away!";
+        UIManager.logBattle(msg);
+        setTimeout(()=>{
+            gameState.inBattle=false;gameState.battleLock=false;
+            document.getElementById('battle-screen').classList.remove('active');
+            document.getElementById('bag-screen').classList.remove('active');
+            
+            if(result==="lose"){
+                game.script.abort();
+                game.loadMap('overworld');gameState.player.x=15;gameState.player.y=85;
+                gameState.party[0].currentHp=gameState.party[0].stats.hp;
+                game.updateCamera();
+                game.queueDialog("You scurried back home...");
+                game.processDialogQueue();
+                return;
+            }
+            
+            if(result==="win"){
+                let expGained = Math.floor(POKEMON_DATA[gameState.battleData.enemy.species].expYield * gameState.battleData.enemy.level / 7);
+                let levelUpMessages = game.gainExp(gameState.party[0], expGained);
+                levelUpMessages.forEach(m => game.queueDialog(m));
+            }
+            
+            if(gameState.onBattleEnd){ const cb = gameState.onBattleEnd; gameState.onBattleEnd = null; cb(); }
+        },2000);
+    },
+
+    battleAction(a){
+        if(a==='run'){
+            if(gameState.battleData.type==='wild')this.endBattle("run");
+            else UIManager.logBattle("Can't run from trainer battles!");
+        }
+    },
+
+    attemptCatch(){
+        const e=gameState.battleData.enemy;
+        UIManager.logBattle("You threw a Poké Ball!");
+        setTimeout(()=>{
+            if(Math.random()<0.7){
+                UIManager.logBattle(`Gotcha! ${e.name} was caught!`);
+                gameState.party.push(e);
+                setTimeout(()=>this.endBattle("catch"),1500);
+            } else {
+                UIManager.logBattle("Oh no! It broke free!");
+                setTimeout(()=>{
+                    const em=this.chooseEnemyMove(gameState.battleData.enemy, gameState.battleData.player);
+                    this.executeMove(gameState.battleData.enemy,gameState.battleData.player,em);
+                    if(gameState.battleData.player.currentHp<=0)this.endBattle("lose");
+                    else{gameState.battleLock=false;this.resetBattleMenu();}
+                },1500);
+            }
+        },1500);
+    }
+};
+
+// --- RENDERER ---
+const Renderer = {
+    drawTile(tile,x,y){
+        const s=32;let c='#FFF';
+        if(tile==='0')c='#A0D8F0';else if(tile==='1')c='#90C890';else if(tile==='2')c='#D4F0C0';
+        else if(tile==='3')c='#A0D89C';else if(tile==='4')c='#F0E0B0';else if(tile==='5')c='#E0C8A0';
+        else if(tile==='6')c='#D0A0A0';else if(tile==='7')c='#C4A484';else if(tile==='8')c='#B0B0B0';else if(tile==='9')c='#F0D060';
+        game.ctx.fillStyle=c;game.ctx.fillRect(x,y,s,s);
+        if(tile==='2'){game.ctx.fillStyle='#B0E090';game.ctx.beginPath();game.ctx.arc(x+8,y+24,3,0,Math.PI*2);game.ctx.fill();game.ctx.beginPath();game.ctx.arc(x+24,y+16,3,0,Math.PI*2);game.ctx.fill();}
+        else if(tile==='3'){game.ctx.fillStyle='#80C078';game.ctx.beginPath();game.ctx.arc(x+8,y+28,4,Math.PI,0);game.ctx.fill();game.ctx.beginPath();game.ctx.arc(x+24,y+28,4,Math.PI,0);game.ctx.fill();}
+        else if(tile==='1'){game.ctx.fillStyle='#708060';game.ctx.fillRect(x+14,y+20,4,12);game.ctx.fillStyle='#80B080';game.ctx.beginPath();game.ctx.arc(x+16,y+12,12,0,Math.PI*2);game.ctx.fill();}
+        else if(tile==='4'){game.ctx.fillStyle='#E0D0A0';game.ctx.beginPath();game.ctx.arc(x+16,y+16,2,0,Math.PI*2);game.ctx.fill();}
+        else if(tile==='6'){game.ctx.fillStyle='#C09090';game.ctx.fillRect(x,y+s-8,s,8);}
+        else if(tile==='8'){game.ctx.fillStyle='#909090';game.ctx.beginPath();game.ctx.arc(x+16,y+16,10,0,Math.PI*2);game.ctx.fill();}
+    },
+
+    renderPlayer(){
+        const p=gameState.player;
+        let x=p.x*32-game.camera.x, y=p.y*32-game.camera.y;
+        if(p.moving){
+            x+=(p.tx-p.x)*p.moveProgress*32;
+            y+=(p.ty-p.y)*p.moveProgress*32;
+        }
+        game.ctx.fillStyle='#6080D0';game.ctx.beginPath();game.ctx.arc(x+16,y+22,10,0,Math.PI*2);game.ctx.fill();
+        game.ctx.fillStyle='#F8C090';game.ctx.beginPath();game.ctx.arc(x+16,y+10,7,0,Math.PI*2);game.ctx.fill();
+        game.ctx.fillStyle='#5A9E5A';game.ctx.beginPath();game.ctx.arc(x+16,y+6,7,Math.PI,0);game.ctx.fill();
+        game.ctx.fillStyle='#000';
+        if(p.dir==='down'){game.ctx.fillRect(x+12,y+10,2,2);game.ctx.fillRect(x+18,y+10,2,2);}
+        else if(p.dir==='left'){game.ctx.fillRect(x+10,y+10,2,2);}
+        else if(p.dir==='right'){game.ctx.fillRect(x+20,y+10,2,2);}
+    },
+
+    renderNPCs(){
+        const map = MAPS[gameState.currentMap];
+        if(!map.npcs)return;
+        map.npcs.forEach(npc=>{
+            if(!npc.visible)return;
+            let x=npc.x*32-game.camera.x, y=npc.y*32-game.camera.y;
+            if(npc.moving){
+                x+=(npc.tx-npc.x)*npc.moveProgress*32;
+                y+=(npc.ty-npc.y)*npc.moveProgress*32;
+            }
+            if(x>-32&&x<game.canvas.width&&y>-32&&y<game.canvas.height){
+                game.ctx.fillStyle=npc.color||'#FFF';
+                game.ctx.beginPath();game.ctx.arc(x+16,y+22,10,0,Math.PI*2);game.ctx.fill();
+                game.ctx.fillStyle='#F8C090';
+                game.ctx.beginPath();game.ctx.arc(x+16,y+10,7,0,Math.PI*2);game.ctx.fill();
+                game.ctx.fillStyle='#000';
+                if(npc.dir==='down'){game.ctx.fillRect(x+12,y+10,2,2);game.ctx.fillRect(x+18,y+10,2,2);}
+                else if(npc.dir==='left'){game.ctx.fillRect(x+10,y+10,2,2);}
+                else if(npc.dir==='right'){game.ctx.fillRect(x+20,y+10,2,2);}
+            }
+        });
+    }
+};
+
+// --- MAIN GAME ENGINE ---
 class GameEngine {
     constructor() {
         this.canvas=document.getElementById('game-canvas');
         this.ctx=this.canvas.getContext('2d');
         this.tileSize=32; this.camera={x:0,y:0}; this.moveSpeed=0.005;
-        this.script = new EventScript(this);
+        this.script = new ScriptSystem(this);
+        game = this; 
+        
         this.resizeCanvas();
         window.addEventListener('resize',()=>this.resizeCanvas());
         this.setupInput();
         this.loadMap('overworld');
-        this.showSign("WILLOWDALE TOWN");
+        UIManager.showSign("WILLOWDALE TOWN");
         this.startGameLoop();
         document.getElementById('loading').style.display='none';
         setTimeout(() => this.runIntroScript(), 500);
-    }
-
-    runIntroScript() {
-        this.script.run([
-            { type:'dialog', text:"MOM: Oh, sweetie, you're finally awake! I was worried sick." },
-            { type:'dialog', text:"MOM: Professor Hazel came by earlier. She said she has something important for you." },
-            { type:'dialog', text:"MOM: Her lab is just northeast of here. Go see what she wants, dear." },
-            { type:'setFlag', flag:'introDone', value:true },
-            { type:'completeQuest', quest:'visitHazel' }
-        ]);
     }
 
     resizeCanvas(){this.canvas.width=window.innerWidth;this.canvas.height=window.innerHeight;this.updateCamera();}
@@ -397,35 +722,50 @@ class GameEngine {
                 return;
             }
             
-            if(this.isUIActive() || gameState.scriptRunning) return;
+            if(UIManager.isUIActive() || gameState.scriptRunning) return;
 
             const rect=this.canvas.getBoundingClientRect();
             const tx=Math.floor((cx-rect.left+this.camera.x)/this.tileSize);
             const ty=Math.floor((cy-rect.top+this.camera.y)/this.tileSize);
-            if(tx<0||ty<0||tx>=this.currentMap.width||ty>=this.currentMap.height)return;
+            if(tx<0||ty<0||tx>=MAPS[gameState.currentMap].width||ty>=MAPS[gameState.currentMap].height)return;
+            
+            // Click Feedback
+            gameState.clickMarker = { x: tx, y: ty, alpha: 1.0 };
             
             const p=gameState.player;
-            let targetNpc=this.currentMap.npcs?this.currentMap.npcs.find(n=>n.x===tx&&n.y===ty&&n.visible):null;
+            // FIX: Use actual current coordinates if not moving to prevent out-of-bounds starts
+            const startX = p.moving ? p.tx : p.x;
+            const startY = p.moving ? p.ty : p.y;
+            
+            let targetNpc=MAPS[gameState.currentMap].npcs?MAPS[gameState.currentMap].npcs.find(n=>n.x===tx&&n.y===ty&&n.visible):null;
             
             if(targetNpc){
+                // Immediate interaction if already adjacent
+                const dist = Math.abs(startX - tx) + Math.abs(startY - ty);
+                if(dist === 1){
+                    if(ty < startY) p.dir = 'up'; else if(ty > startY) p.dir = 'down'; else if(tx < startX) p.dir = 'left'; else if(tx > startX) p.dir = 'right';
+                    this.handleNPC(targetNpc);
+                    return;
+                }
+                
+                // Otherwise find path to adjacent tile
                 const adj=[{x:tx,y:ty-1,dir:'down'},{x:tx,y:ty+1,dir:'up'},{x:tx-1,y:ty,dir:'right'},{x:tx+1,y:ty,dir:'left'}];
                 let best=null,bd=null;
                 for(let a of adj){
-                    if(this.isWalkable(a.x,a.y)||(a.x===p.x&&a.y===p.y)){
-                        let path=this.findPath(p.x,p.y,a.x,a.y);
+                    if(Pathfinder.isWalkable(a.x,a.y,true)||(a.x===startX&&a.y===startY)){
+                        let path=Pathfinder.findPath(startX,startY,a.x,a.y,true);
                         if(path&&(!best||path.length<best.length)){best=path;bd=a.dir;}
                     }
                 }
-                if(best){p.path=best;p.interactTarget={npc:targetNpc,dir:bd};if(best.length===0){p.dir=bd;this.handleNPC(targetNpc);}}
+                if(best){p.path=best;p.interactTarget={npc:targetNpc,dir:bd};}
             } else {
-                if(this.isWalkable(tx,ty)||(tx===p.x&&ty===p.y)){
-                    let path=this.findPath(p.x,p.y,tx,ty);
+                if(Pathfinder.isWalkable(tx,ty,true)||(tx===startX&&ty===startY)){
+                    let path=Pathfinder.findPath(startX,startY,tx,ty,true);
                     if(path){p.path=path;p.interactTarget=null;}
                 }
             }
         };
 
-        // Pointer Events (Universal for Mouse and Touch)
         tl.addEventListener('pointerdown', e => { e.preventDefault(); handleWorldTouch(e.clientX, e.clientY); });
         tl.addEventListener('pointermove', e => { if(e.buttons === 1) { e.preventDefault(); handleWorldTouch(e.clientX, e.clientY); } });
         
@@ -452,9 +792,9 @@ class GameEngine {
         if(gameState.currentDialog) return;
         if(gameState.dialogQueue.length > 0) {
             gameState.currentDialog = gameState.dialogQueue.shift();
-            this.showDialog(gameState.currentDialog.text, gameState.currentDialog.options);
+            UIManager.showDialog(gameState.currentDialog.text, gameState.currentDialog.options);
         } else {
-            document.getElementById('dialog-box').classList.remove('active');
+            UIManager.hideDialog();
             if(gameState.onDialogComplete) { const cb = gameState.onDialogComplete; gameState.onDialogComplete = null; cb(); }
         }
     }
@@ -464,49 +804,11 @@ class GameEngine {
         this.processDialogQueue();
     }
 
-    findPath(sx,sy,tx,ty){
-        if(sx===tx&&sy===ty)return[];
-        const q=[[sx,sy]],vis=new Set([`${sx},${sy}`]),par={},dirs=[[0,-1],[0,1],[-1,0],[1,0]];
-        while(q.length){
-            let[cx,cy]=q.shift();
-            if(cx===tx&&cy===ty){let path=[],c=`${tx},${ty}`;while(c!==`${sx},${sy}`){let[x,y]=c.split(',').map(Number);path.unshift({x,y});c=par[c];}return path;}
-            for(let[dx,dy]of dirs){
-                let nx=cx+dx,ny=cy+dy,k=`${nx},${ny}`;
-                if(nx>=0&&nx<this.currentMap.width&&ny>=0&&ny<this.currentMap.height&&!vis.has(k)){
-                    if(this.isWalkable(nx,ny)||(nx===tx&&ny===ty)){vis.add(k);par[k]=`${cx},${cy}`;q.push([nx,ny]);}
-                }
-            }
-        }
-        return null;
-    }
-
-    isWalkable(x,y){
-        if(y<0||y>=this.currentMap.height||x<0||x>=this.currentMap.width)return false;
-        const tile=this.currentMap.tiles[y][x];
-        if(['0','1','5','6','8'].includes(tile))return false;
-        if(this.currentMap.npcs){
-            for(let n of this.currentMap.npcs){
-                if(n.x===x&&n.y===y&&n.visible){
-                    if(n.sprite==='witherGrunt'&&!gameState.flags.witherDefeated)return false;
-                    if(n.defeatFlag&&gameState.flags[n.defeatFlag])return true;
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    isUIActive(){
-        return document.getElementById('menu-screen').classList.contains('active')||
-               document.getElementById('bag-screen').classList.contains('active')||
-               document.getElementById('pokemon-screen').classList.contains('active')||
-               document.getElementById('quest-screen').classList.contains('active');
-    }
-
-    loadMap(name){gameState.currentMap=name;this.currentMap=MAPS[name];this.updateCamera();}
+    loadMap(name){gameState.currentMap=name;this.updateCamera();}
 
     updateCamera(){
-        if(!this.currentMap)return;
+        const map = MAPS[gameState.currentMap];
+        if(!map)return;
         let pX=gameState.player.x, pY=gameState.player.y;
         if(gameState.player.moving){
             pX+=(gameState.player.tx-gameState.player.x)*gameState.player.moveProgress;
@@ -514,7 +816,7 @@ class GameEngine {
         }
         const targetX=pX*this.tileSize-this.canvas.width/2+this.tileSize/2;
         const targetY=pY*this.tileSize-this.canvas.height/2+this.tileSize/2;
-        const mapW=this.currentMap.width*this.tileSize, mapH=this.currentMap.height*this.tileSize;
+        const mapW=map.width*this.tileSize, mapH=map.height*this.tileSize;
         if(mapW<=this.canvas.width)this.camera.x=(mapW-this.canvas.width)/2;
         else this.camera.x=Math.max(0,Math.min(targetX,mapW-this.canvas.width));
         if(mapH<=this.canvas.height)this.camera.y=(mapH-this.canvas.height)/2;
@@ -541,8 +843,10 @@ class GameEngine {
                 this.checkTileEvents();
             }
         }
-        if(this.currentMap.npcs){
-            this.currentMap.npcs.forEach(npc => {
+        
+        const map = MAPS[gameState.currentMap];
+        if(map.npcs){
+            map.npcs.forEach(npc => {
                 if(npc.moving){
                     npc.moveProgress += dt*this.moveSpeed;
                     if(npc.moveProgress >= 1){
@@ -558,8 +862,14 @@ class GameEngine {
                         }
                     }
                 }
+                if(!npc.moving && npc.path && npc.path.length > 0){
+                    const next = npc.path.shift();
+                    npc.dir = this.getDir(npc.x, npc.y, next.x, next.y);
+                    npc.tx = next.x; npc.ty = next.y; npc.moving = true; npc.moveProgress = 0;
+                }
             });
         }
+        
         if(!p.moving && !gameState.transitioning && !gameState.currentDialog && gameState.dialogQueue.length===0 && !gameState.scriptRunning){
             if(p.path && p.path.length > 0){
                 const next = p.path.shift();
@@ -571,6 +881,7 @@ class GameEngine {
                 p.interactTarget = null;
             }
         }
+        
         if(!p.moving && !gameState.transitioning && gameState.scriptRunning){
             if(p.path && p.path.length > 0){
                 const next = p.path.shift();
@@ -582,6 +893,13 @@ class GameEngine {
                 cb();
             }
         }
+        
+        // Update click marker
+        if(gameState.clickMarker.alpha > 0){
+            gameState.clickMarker.alpha -= dt * 0.005;
+            if(gameState.clickMarker.alpha < 0) gameState.clickMarker.alpha = 0;
+        }
+        
         this.updateCamera();
     }
 
@@ -591,16 +909,21 @@ class GameEngine {
 
     checkTileEvents(){
         const p=gameState.player;
-        const tile=this.currentMap.tiles[p.y][p.x];
+        const map = MAPS[gameState.currentMap];
+        const tile=map.tiles[p.y][p.x];
         if(tile==='7'||tile==='9'){
-            const warp=this.currentMap.warps.find(w=>w.x===p.x&&w.y===p.y);
+            const warp=map.warps.find(w=>w.x===p.x&&w.y===p.y);
             if(warp){
                 gameState.transitioning=true;
                 this.canvas.style.opacity=0;
                 setTimeout(()=>{
                     this.loadMap(warp.target);
-                    gameState.player.x=warp.tx;gameState.player.y=warp.ty;
-                    gameState.player.path=[];gameState.player.interactTarget=null;
+                    gameState.player.x=warp.tx;
+                    gameState.player.y=warp.ty;
+                    gameState.player.tx=warp.tx; // FIX: Reset target coordinates to prevent pathfinder out-of-bounds
+                    gameState.player.ty=warp.ty; // FIX: Reset target coordinates to prevent pathfinder out-of-bounds
+                    gameState.player.path=[];
+                    gameState.player.interactTarget=null;
                     this.updateCamera();
                     this.canvas.style.opacity=1;
                     setTimeout(()=>{gameState.transitioning=false;},150);
@@ -608,8 +931,8 @@ class GameEngine {
                 return;
             }
         }
-        if(this.currentMap.items){
-            const item=this.currentMap.items.find(it=>it.x===p.x&&it.y===p.y&&!it.pickedUp);
+        if(map.items){
+            const item=map.items.find(it=>it.x===p.x&&it.y===p.y&&!it.pickedUp);
             if(item){
                 item.pickedUp=true;
                 this.addItem(item.id,1,'key');
@@ -618,13 +941,13 @@ class GameEngine {
                 this.processDialogQueue();
             }
         }
-        if(tile==='3'&&this.currentMap.encounters&&!gameState.scriptRunning){
-            for(let enc of this.currentMap.encounters){
+        if(tile==='3'&&map.encounters&&!gameState.scriptRunning){
+            for(let enc of map.encounters){
                 if(p.y>=enc.yRange[0]&&p.y<=enc.yRange[1]){
                     if(Math.random()<enc.rate){
                         const species=enc.pokemon[Math.floor(Math.random()*enc.pokemon.length)];
                         const lvl=Math.floor(Math.random()*(enc.level[1]-enc.level[0]+1))+enc.level[0];
-                        this.startBattle(species,lvl,'wild');
+                        BattleSystem.startBattle(species,lvl,'wild');
                     }
                     break;
                 }
@@ -663,8 +986,10 @@ class GameEngine {
                     { type:'completeQuest', quest:'firstSteps' }
                 ]);
             } else {
-                this.queueDialog("MOM: Remember to rest if your Pokémon get hurt!");
-                this.processDialogQueue();
+                this.script.run([
+                    { type:'healParty' },
+                    { type:'dialog', text:"MOM: You look tired. Rest up, your Pokémon are healed!" }
+                ]);
             }
         } else if(npc.sprite==='fisherman'){
             if(!gameState.flags.learnedCatch){
@@ -695,7 +1020,7 @@ class GameEngine {
                 this.script.run([
                     { type:'dialog', text:"WITHER GRUNT: Halt! This forest belongs to Team Wither!" },
                     { type:'dialog', text:"WITHER GRUNT: No one passes without a battle! Go, Mouselet!" },
-                    { type:'startBattle', species:'mouselet', level:8, type:'trainer', trainer:'witherGrunt' },
+                    { type:'startBattle', species:'mouselet', level:8, battleType:'trainer', trainer:'witherGrunt' },
                     { type:'dialog', text:"WITHER GRUNT: Argh! You'll pay for this! Team Wither will not be stopped!" },
                     { type:'moveNPC', id:'witherGrunt', x:14, y:15 },
                     { type:'despawnNPC', id:'witherGrunt' },
@@ -717,7 +1042,7 @@ class GameEngine {
                     { type:'dialog', text:"EMBER: So, you've made it to Cindermere Gym." },
                     { type:'dialog', text:"EMBER: I am Ember, the Gym Leader. My Pokémon burn with an unquenchable passion!" },
                     { type:'dialog', text:"EMBER: Show me your spirit! Battle me!" },
-                    { type:'startBattle', species:'flambear', level:12, type:'trainer', trainer:'ember' },
+                    { type:'startBattle', species:'flambear', level:12, battleType:'trainer', trainer:'ember' },
                     { type:'dialog', text:"EMBER: Incredible! Your bond with your Pokémon is strong." },
                     { type:'dialog', text:"EMBER: You've earned the Ember Badge! Take it with pride." },
                     { type:'spawnNPC', npc:{x:7,y:8,sprite:'hazel',color:'#C0A0D0',dir:'up'} },
@@ -728,8 +1053,7 @@ class GameEngine {
                     { type:'moveNPC', id:'hazel', x:7, y:8 },
                     { type:'despawnNPC', id:'hazel' },
                     { type:'setFlag', flag:'emberDefeated', value:true },
-                    { type:'completeQuest', quest:'beatEmber' },
-                    { type:'healParty' }
+                    { type:'completeQuest', quest:'beatEmber' }
                 ]);
             } else {
                 this.queueDialog("EMBER: You've earned the Ember Badge. The Verdant region is vast — keep exploring!");
@@ -739,7 +1063,7 @@ class GameEngine {
     }
 
     chooseStarter(species){
-        const starter = this.createPokemon(species,5);
+        const starter = BattleSystem.createPokemon(species,5);
         gameState.party = [starter];
         gameState.flags.starterChosen = true;
         gameState.quests.visitHazel.done = true;
@@ -747,15 +1071,14 @@ class GameEngine {
         
         const rival = species==='florafa'?'pyrolyn':species==='pyrolyn'?'aquapup':'florafa';
         
-        // Push to script queue instead of run to prevent interrupting the current script
-        this.script.queue.push(
+        this.script.run([
             { type:'dialog', text:`You chose ${POKEMON_DATA[species].name}!` },
             { type:'spawnNPC', npc:{x:7,y:8,sprite:'finn',color:'#4080C0',dir:'up'} },
             { type:'moveNPC', id:'finn', x:7, y:6 },
             { type:'dialog', text:"FINN: Hey, wait up! Sorry I'm late, Professor!" },
             { type:'dialog', text:"FINN: Oh, you already got one? Then I'll take this one!" },
             { type:'dialog', text:`FINN: Go, ${POKEMON_DATA[rival].name}! Let's battle!` },
-            { type:'startBattle', species:rival, level:5, type:'rival', trainer:'finn' },
+            { type:'startBattle', species:rival, level:5, battleType:'rival', trainer:'finn' },
             { type:'dialog', text:"FINN: Wow, you're strong! I need to train harder." },
             { type:'dialog', text:"FINN: See you around, rival!" },
             { type:'moveNPC', id:'finn', x:7, y:8 },
@@ -766,26 +1089,7 @@ class GameEngine {
             { type:'dialog', text:"HAZEL: Now go home and tell your mother. She'll want to hear about this!" },
             { type:'completeQuest', quest:'rivalBattle' },
             { type:'setFlag', flag:'rivalBattleDone', value:true }
-        );
-    }
-
-    createPokemon(species,level){
-        const d=POKEMON_DATA[species];
-        const stats=this.calculateStats(d.baseStats,level);
-        let moves = [];
-        if(d.learnset){
-            for(let lvl=1; lvl<=level; lvl++){
-                if(d.learnset[lvl]){
-                    let mv = d.learnset[lvl];
-                    if(!moves.some(m => m.name === MOVE_DATA[mv].name)){
-                        if(moves.length < 4) moves.push({...MOVE_DATA[mv]});
-                        else moves[3] = {...MOVE_DATA[mv]};
-                    }
-                }
-            }
-        }
-        if(moves.length === 0) moves.push({...MOVE_DATA["tackle"]});
-        return{species,name:d.name,level,stats,currentHp:stats.hp,types:d.types,color:d.color,moves,exp:0,expToNext:Math.floor(Math.pow(level,3))};
+        ]);
     }
 
     calculateStats(base,level){
@@ -793,128 +1097,47 @@ class GameEngine {
         return{hp:Math.floor(((2*base.hp)*level)/100)+level+10,atk:c('atk'),def:c('def'),spAtk:c('spAtk'),spDef:c('spDef'),spd:c('spd')};
     }
 
-    startBattle(species,level,type,trainerName){
-        gameState.inBattle=true;gameState.battleLock=false;
-        const enemy=this.createPokemon(species,level);
-        gameState.battleData={type,trainer:trainerName||null,player:gameState.party[0],enemy};
-        document.getElementById('enemy-name').textContent=enemy.name;
-        document.getElementById('enemy-lvl').textContent=`Lv.${enemy.level}`;
-        document.getElementById('player-name').textContent=gameState.party[0].name;
-        document.getElementById('player-lvl').textContent=`Lv.${gameState.party[0].level}`;
-        document.getElementById('enemy-sprite').style.background=enemy.color;
-        document.getElementById('player-sprite').style.background=gameState.party[0].color;
-        document.getElementById('battle-screen').classList.add('active');
-        this.resetBattleMenu();
-        this.updateBattleUI();
-        this.logBattle(`A ${type==='wild'?'wild ':''}${enemy.name} appeared!`);
-    }
-
-    resetBattleMenu(){
-        const m=document.getElementById('battle-menu');
-        m.innerHTML=`<div class="battle-option" data-act="fight">FIGHT</div><div class="battle-option" data-act="bag">BAG</div><div class="battle-option" data-act="run">RUN</div>`;
-        m.querySelectorAll('.battle-option').forEach(b=>b.addEventListener('click',()=>{
-            const a=b.dataset.act;
-            if(a==='fight')this.showFightMenu();
-            else if(a==='bag')this.openBagInBattle();
-            else if(a==='run')this.battleAction('run');
-        }));
-    }
-
-    showFightMenu(){
-        const m=document.getElementById('battle-menu');m.innerHTML='';
-        gameState.battleData.player.moves.forEach((mv,i)=>{
-            const b=document.createElement('div');b.className='battle-option';b.textContent=mv.name;
-            b.addEventListener('click',()=>this.executeTurn(i));m.appendChild(b);
-        });
-        const back=document.createElement('div');back.className='battle-option';back.textContent='BACK';
-        back.addEventListener('click',()=>this.resetBattleMenu());m.appendChild(back);
-    }
-
-    openBagInBattle(){this.renderBag('items');document.getElementById('bag-screen').classList.add('active');}
-
-    executeTurn(mi){
-        if(gameState.battleLock)return;gameState.battleLock=true;
-        const p=gameState.battleData.player,e=gameState.battleData.enemy;
-        const pm=p.moves[mi];
-        const em=this.chooseEnemyMove(e,p);
-        const first=p.stats.spd>=e.stats.spd;
-        const sequence = () => {
-            if(first){
-                this.executeMove(p,e,pm);
-                if(e.currentHp>0){
-                    setTimeout(()=>{this.executeMove(e,p,em);if(p.currentHp<=0)this.endBattle("lose");else{gameState.battleLock=false;this.resetBattleMenu();}},1500);
-                } else this.endBattle("win");
-            } else {
-                this.executeMove(e,p,em);
-                if(p.currentHp>0){
-                    setTimeout(()=>{this.executeMove(p,e,pm);if(e.currentHp<=0)this.endBattle("win");else{gameState.battleLock=false;this.resetBattleMenu();}},1500);
-                } else this.endBattle("lose");
+    gainExp(pokemon, amount){
+        pokemon.exp += amount;
+        let messages = [`${pokemon.name} gained ${amount} EXP!`];
+        while(pokemon.exp >= pokemon.expToNext && pokemon.level < 100){
+            pokemon.exp -= pokemon.expToNext;
+            pokemon.level++;
+            pokemon.expToNext = Math.floor(Math.pow(pokemon.level,3));
+            let oldMaxHp = pokemon.stats.hp;
+            pokemon.stats = this.calculateStats(POKEMON_DATA[pokemon.species].baseStats, pokemon.level);
+            pokemon.currentHp += (pokemon.stats.hp - oldMaxHp);
+            messages.push(`${pokemon.name} grew to Lv. ${pokemon.level}!`);
+            
+            let learnset = POKEMON_DATA[pokemon.species].learnset;
+            if(learnset && learnset[pokemon.level]){
+                let moveName = learnset[pokemon.level];
+                if(!pokemon.moves.some(m => m.name === MOVE_DATA[moveName].name)){
+                    if(pokemon.moves.length < 4){
+                        pokemon.moves.push({...MOVE_DATA[moveName]});
+                    } else {
+                        pokemon.moves[0] = {...MOVE_DATA[moveName]};
+                    }
+                    messages.push(`${pokemon.name} learned ${MOVE_DATA[moveName].name}!`);
+                }
             }
-        };
-        sequence();
-    }
-
-    chooseEnemyMove(attacker, defender) {
-        if (Math.random() < 0.2) return attacker.moves[Math.floor(Math.random() * attacker.moves.length)];
-        let bestMove = null, bestScore = -1;
-        for (let move of attacker.moves) {
-            let score = 0;
-            if (move.power > 0) {
-                let typeMult = 1;
-                defender.types.forEach(t => { if (TYPE_CHART[move.type] && TYPE_CHART[move.type][t]) typeMult *= TYPE_CHART[move.type][t]; });
-                const stab = attacker.types.includes(move.type) ? 1.5 : 1;
-                score = move.power * typeMult * stab;
-                if (typeMult === 0) score = -1;
-            } else { score = 1; }
-            if (score > bestScore) { bestScore = score; bestMove = move; }
-        }
-        if (!bestMove || bestScore <= 0) return attacker.moves[Math.floor(Math.random() * attacker.moves.length)];
-        return bestMove;
-    }
-
-    executeMove(att,def,move){
-        this.logBattle(`${att.name} used ${move.name}!`);
-        if(move.power>0){
-            const aS=att.stats.atk,dS=def.stats.def;
-            let tm=1;
-            def.types.forEach(t=>{if(TYPE_CHART[move.type]&&TYPE_CHART[move.type][t])tm*=TYPE_CHART[move.type][t];});
-            const stab=att.types.includes(move.type)?1.5:1;
-            const dmg=Math.max(1,Math.floor((((2*att.level/5+2)*move.power*(aS/dS))/50+2)*tm*stab));
-            def.currentHp=Math.max(0,def.currentHp-dmg);
-            if(tm>1)this.logBattle("It's super effective!");
-            else if(tm<1&&tm>0)this.logBattle("It's not very effective...");
-            else if(tm===0)this.logBattle("It doesn't affect the foe...");
-        }
-        this.updateBattleUI();
-    }
-
-    endBattle(result){
-        const msg = result==="win" ? "You won!" : result==="lose" ? "You lost..." : result==="catch" ? "Gotcha!" : "Got away!";
-        this.logBattle(msg);
-        setTimeout(()=>{
-            gameState.inBattle=false;gameState.battleLock=false;
-            document.getElementById('battle-screen').classList.remove('active');
-            document.getElementById('bag-screen').classList.remove('active');
-            if(result==="win"){ gameState.party[0].currentHp = gameState.party[0].stats.hp; }
-            else if(result==="lose"){
-                this.loadMap('overworld');gameState.player.x=15;gameState.player.y=85;
-                gameState.party[0].currentHp=gameState.party[0].stats.hp;
-                this.updateCamera();
-                this.queueDialog("You scurried back home...");
-                this.processDialogQueue();
+            
+            let evolveLevel = POKEMON_DATA[pokemon.species].evolveLevel;
+            if(evolveLevel && pokemon.level >= evolveLevel){
+                let oldName = pokemon.name;
+                pokemon.species = POKEMON_DATA[pokemon.species].evolveTo;
+                pokemon.name = POKEMON_DATA[pokemon.species].name;
+                pokemon.color = POKEMON_DATA[pokemon.species].color;
+                pokemon.stats = this.calculateStats(POKEMON_DATA[pokemon.species].baseStats, pokemon.level);
+                pokemon.currentHp = pokemon.stats.hp;
+                messages.push(`What? ${oldName} is evolving!`);
+                messages.push(`Congratulations! Your ${oldName} evolved into ${pokemon.name}!`);
             }
-            if(gameState.onBattleEnd){ const cb = gameState.onBattleEnd; gameState.onBattleEnd = null; cb(); }
-        },2000);
-    }
-
-    battleAction(a){
-        if(a==='run'){
-            if(gameState.battleData.type==='wild')this.endBattle("run");
-            else this.logBattle("Can't run from trainer battles!");
         }
+        return messages;
     }
 
-    toggleMenu(){if(gameState.inBattle||this.isUIActive()||gameState.transitioning||gameState.scriptRunning)return;document.getElementById('menu-screen').classList.toggle('active');}
+    toggleMenu(){if(gameState.inBattle||UIManager.isUIActive()||gameState.transitioning||gameState.scriptRunning)return;document.getElementById('menu-screen').classList.toggle('active');}
 
     renderBag(pocket){
         const list=document.getElementById('bag-items-list');list.innerHTML='';
@@ -937,40 +1160,23 @@ class GameEngine {
                 this.queueDialog(`${p.name} recovered 20 HP!`);this.removeItem(id,1,pocket);
                 if(gameState.inBattle){
                     document.getElementById('bag-screen').classList.remove('active');
-                    const em=this.chooseEnemyMove(gameState.battleData.enemy, gameState.battleData.player);
-                    this.executeMove(gameState.battleData.enemy,gameState.battleData.player,em);
-                    if(gameState.battleData.player.currentHp<=0)this.endBattle("lose");
-                    else{gameState.battleLock=false;this.resetBattleMenu();}
+                    const em=BattleSystem.chooseEnemyMove(gameState.battleData.enemy, gameState.battleData.player);
+                    BattleSystem.executeMove(gameState.battleData.enemy,gameState.battleData.player,em);
+                    if(gameState.battleData.player.currentHp<=0)BattleSystem.endBattle("lose");
+                    else{gameState.battleLock=false;BattleSystem.resetBattleMenu();}
                 } else {this.renderBag(pocket);}
                 this.processDialogQueue();
             } else {this.queueDialog("HP is already full!");this.processDialogQueue();}
         } else if(id==='pokeBall'){
             if(gameState.inBattle&&gameState.battleData.type==='wild'){
-                this.attemptCatch();this.removeItem(id,1,pocket);
+                BattleSystem.attemptCatch();this.removeItem(id,1,pocket);
                 document.getElementById('bag-screen').classList.remove('active');
             } else {this.queueDialog("Can't use that here!");this.processDialogQueue();}
         } else {this.queueDialog("Can't use that here!");this.processDialogQueue();}
     }
 
-    attemptCatch(){
-        const e=gameState.battleData.enemy;
-        this.logBattle("You threw a Poké Ball!");
-        setTimeout(()=>{
-            if(Math.random()<0.7){
-                this.logBattle(`Gotcha! ${e.name} was caught!`);
-                gameState.party.push(e);
-                setTimeout(()=>this.endBattle("catch"),1500);
-            } else {
-                this.logBattle("Oh no! It broke free!");
-                setTimeout(()=>{
-                    const em=this.chooseEnemyMove(gameState.battleData.enemy, gameState.battleData.player);
-                    this.executeMove(gameState.battleData.enemy,gameState.battleData.player,em);
-                    if(gameState.battleData.player.currentHp<=0)this.endBattle("lose");
-                    else{gameState.battleLock=false;this.resetBattleMenu();}
-                },1500);
-            }
-        },1500);
-    }
+    openBagInBattle(){this.renderBag('items');document.getElementById('bag-screen').classList.add('active');}
+    startBattle(species,level,type,trainerName){BattleSystem.startBattle(species,level,type,trainerName);}
 
     addItem(id,count,pocket){let it=gameState.bag[pocket].find(i=>i.id===id);if(it)it.count+=count;else gameState.bag[pocket].push({id,count});}
     removeItem(id,count,pocket){let it=gameState.bag[pocket].find(i=>i.id===id);if(it){it.count-=count;if(it.count<=0)gameState.bag[pocket]=gameState.bag[pocket].filter(i=>i.id!==id);}}
@@ -980,7 +1186,27 @@ class GameEngine {
         if(!gameState.party.length){list.innerHTML='<div style="text-align:center;padding:20px;color:#888;">No Pokémon.</div>';return;}
         gameState.party.forEach(p=>{
             const d=document.createElement('div');d.className='pokemon-card';
-            d.innerHTML=`<div class="pokemon-sprite-small" style="background:${p.color}"></div><div class="pokemon-info"><h3>${p.name} Lv.${p.level}</h3><div class="pokemon-stats"><span>HP: ${p.currentHp}/${p.stats.hp}</span><span>ATK: ${p.stats.atk}</span><span>DEF: ${p.stats.def}</span><span>SPD: ${p.stats.spd}</span><span>EXP: ${p.exp}/${p.expToNext}</span></div></div>`;
+            let movesHtml = '<div class="move-list"><h4>Moves</h4>';
+            p.moves.forEach(mv => {
+                movesHtml += `<div class="move-entry"><b>${mv.name}</b> <span class="move-type">${mv.type}</span> (Pow: ${mv.power})<br>${mv.desc}</div>`;
+            });
+            movesHtml += '</div>';
+            d.innerHTML=`
+                <div class="pkmn-top">
+                    <div class="pokemon-sprite-small" style="background:${p.color}"></div>
+                    <div class="pokemon-info">
+                        <h3>${p.name} Lv.${p.level}</h3>
+                        <div class="pokemon-stats">
+                            <span>HP: ${p.currentHp}/${p.stats.hp}</span>
+                            <span>ATK: ${p.stats.atk}</span>
+                            <span>DEF: ${p.stats.def}</span>
+                            <span>SPD: ${p.stats.spd}</span>
+                            <span>EXP: ${p.exp}/${p.expToNext}</span>
+                        </div>
+                    </div>
+                </div>
+                ${movesHtml}
+            `;
             list.appendChild(d);
         });
     }
@@ -996,58 +1222,25 @@ class GameEngine {
         }
     }
 
-    showDialog(text, options=null){
-        const box=document.getElementById('dialog-box');
-        const txt=document.getElementById('dialog-text');
-        const opt=document.getElementById('dialog-options');
-        const arrow=document.querySelector('.dialog-arrow');
-        if(text === null && options){ txt.textContent = ""; } else { txt.textContent=text; }
-        opt.innerHTML='';
-        if(options){
-            opt.style.display='grid';arrow.style.display='none';
-            options.forEach(o=>{
-                const b=document.createElement('div');b.className='dialog-option';b.textContent=o.text;
-                b.onclick=()=>{
-                    box.classList.remove('active');
-                    gameState.currentDialog=null;
-                    if(o.callback) o.callback.call(this);
-                    this.processDialogQueue();
-                };
-                opt.appendChild(b);
-            });
-        } else {
-            opt.style.display='none';arrow.style.display='block';
-        }
-        box.classList.add('active');
-    }
-    
-    showSign(text){const s=document.getElementById('location-sign');s.textContent=text;s.classList.add('active');setTimeout(()=>s.classList.remove('active'),2000);}
-    logBattle(msg){document.getElementById('battle-log').textContent=msg;}
-    updateBattleUI(){
-        const p=gameState.battleData.player,e=gameState.battleData.enemy;
-        document.getElementById('player-hp').style.width=`${(p.currentHp/p.stats.hp)*100}%`;
-        document.getElementById('enemy-hp').style.width=`${(e.currentHp/e.stats.hp)*100}%`;
-        document.getElementById('player-exp').style.width=`${(p.exp/p.expToNext)*100}%`;
-    }
-
     render(){
         this.ctx.fillStyle='#000';
         this.ctx.fillRect(0,0,this.canvas.width,this.canvas.height);
-        if(!this.currentMap)return;
+        const map = MAPS[gameState.currentMap];
+        if(!map)return;
         const sc=Math.floor(this.camera.x/this.tileSize);
         const ec=Math.ceil((this.camera.x+this.canvas.width)/this.tileSize);
         const sr=Math.floor(this.camera.y/this.tileSize);
         const er=Math.ceil((this.camera.y+this.canvas.height)/this.tileSize);
         for(let r=sr;r<=er;r++)for(let c=sc;c<=ec;c++){
-            if(r>=0&&c>=0&&r<this.currentMap.height&&c<this.currentMap.width){
-                const tile=this.currentMap.tiles[r][c];
+            if(r>=0&&c>=0&&r<map.height&&c<map.width){
+                const tile=map.tiles[r][c];
                 const x=Math.floor(c*this.tileSize-this.camera.x);
                 const y=Math.floor(r*this.tileSize-this.camera.y);
-                this.drawTile(tile,x,y);
+                Renderer.drawTile(tile,x,y);
             }
         }
-        if(this.currentMap.items){
-            this.currentMap.items.forEach(it=>{
+        if(map.items){
+            map.items.forEach(it=>{
                 if(!it.pickedUp){
                     const x=Math.floor(it.x*this.tileSize-this.camera.x);
                     const y=Math.floor(it.y*this.tileSize-this.camera.y);
@@ -1056,61 +1249,30 @@ class GameEngine {
                 }
             });
         }
-        this.renderNPCs();this.renderPlayer();
-    }
-
-    drawTile(tile,x,y){
-        const s=this.tileSize;let c='#FFF';
-        if(tile==='0')c='#A0D8F0';else if(tile==='1')c='#90C890';else if(tile==='2')c='#D4F0C0';
-        else if(tile==='3')c='#A0D89C';else if(tile==='4')c='#F0E0B0';else if(tile==='5')c='#E0C8A0';
-        else if(tile==='6')c='#D0A0A0';else if(tile==='7')c='#C4A484';else if(tile==='8')c='#B0B0B0';else if(tile==='9')c='#F0D060';
-        this.ctx.fillStyle=c;this.ctx.fillRect(x,y,s,s);
-        if(tile==='2'){this.ctx.fillStyle='#B0E090';this.ctx.beginPath();this.ctx.arc(x+8,y+24,3,0,Math.PI*2);this.ctx.fill();this.ctx.beginPath();this.ctx.arc(x+24,y+16,3,0,Math.PI*2);this.ctx.fill();}
-        else if(tile==='3'){this.ctx.fillStyle='#80C078';this.ctx.beginPath();this.ctx.arc(x+8,y+28,4,Math.PI,0);this.ctx.fill();this.ctx.beginPath();this.ctx.arc(x+24,y+28,4,Math.PI,0);this.ctx.fill();}
-        else if(tile==='1'){this.ctx.fillStyle='#708060';this.ctx.fillRect(x+14,y+20,4,12);this.ctx.fillStyle='#80B080';this.ctx.beginPath();this.ctx.arc(x+16,y+12,12,0,Math.PI*2);this.ctx.fill();}
-        else if(tile==='4'){this.ctx.fillStyle='#E0D0A0';this.ctx.beginPath();this.ctx.arc(x+16,y+16,2,0,Math.PI*2);this.ctx.fill();}
-        else if(tile==='6'){this.ctx.fillStyle='#C09090';this.ctx.fillRect(x,y+s-8,s,8);}
-        else if(tile==='8'){this.ctx.fillStyle='#909090';this.ctx.beginPath();this.ctx.arc(x+16,y+16,10,0,Math.PI*2);this.ctx.fill();}
-    }
-
-    renderPlayer(){
-        const p=gameState.player;
-        let x=p.x*this.tileSize-this.camera.x, y=p.y*this.tileSize-this.camera.y;
-        if(p.moving){
-            x+=(p.tx-p.x)*p.moveProgress*this.tileSize;
-            y+=(p.ty-p.y)*p.moveProgress*this.tileSize;
+        Renderer.renderNPCs();Renderer.renderPlayer();
+        
+        // Render Click Marker
+        if(gameState.clickMarker.alpha > 0){
+            const x = gameState.clickMarker.x * this.tileSize - this.camera.x;
+            const y = gameState.clickMarker.y * this.tileSize - this.camera.y;
+            this.ctx.strokeStyle = `rgba(0,0,0,${gameState.clickMarker.alpha})`;
+            this.ctx.lineWidth = 4;
+            this.ctx.strokeRect(x+2, y+2, this.tileSize-4, this.tileSize-4);
         }
-        this.ctx.fillStyle='#6080D0';this.ctx.beginPath();this.ctx.arc(x+16,y+22,10,0,Math.PI*2);this.ctx.fill();
-        this.ctx.fillStyle='#F8C090';this.ctx.beginPath();this.ctx.arc(x+16,y+10,7,0,Math.PI*2);this.ctx.fill();
-        this.ctx.fillStyle='#5A9E5A';this.ctx.beginPath();this.ctx.arc(x+16,y+6,7,Math.PI,0);this.ctx.fill();
-        this.ctx.fillStyle='#000';
-        if(p.dir==='down'){this.ctx.fillRect(x+12,y+10,2,2);this.ctx.fillRect(x+18,y+10,2,2);}
-        else if(p.dir==='left'){this.ctx.fillRect(x+10,y+10,2,2);}
-        else if(p.dir==='right'){this.ctx.fillRect(x+20,y+10,2,2);}
     }
-
-    renderNPCs(){
-        if(!this.currentMap.npcs)return;
-        this.currentMap.npcs.forEach(npc=>{
-            if(!npc.visible)return;
-            let x=npc.x*this.tileSize-this.camera.x, y=npc.y*this.tileSize-this.camera.y;
-            if(npc.moving){
-                x+=(npc.tx-npc.x)*npc.moveProgress*this.tileSize;
-                y+=(npc.ty-npc.y)*npc.moveProgress*this.tileSize;
-            }
-            if(x>-32&&x<this.canvas.width&&y>-32&&y<this.canvas.height){
-                this.ctx.fillStyle=npc.color||'#FFF';
-                this.ctx.beginPath();this.ctx.arc(x+16,y+22,10,0,Math.PI*2);this.ctx.fill();
-                this.ctx.fillStyle='#F8C090';
-                this.ctx.beginPath();this.ctx.arc(x+16,y+10,7,0,Math.PI*2);this.ctx.fill();
-                this.ctx.fillStyle='#000';
-                if(npc.dir==='down'){this.ctx.fillRect(x+12,y+10,2,2);this.ctx.fillRect(x+18,y+10,2,2);}
-                else if(npc.dir==='left'){this.ctx.fillRect(x+10,y+10,2,2);}
-                else if(npc.dir==='right'){this.ctx.fillRect(x+20,y+10,2,2);}
-            }
-        });
+    
+    runIntroScript() {
+        this.script.run([
+            { type:'dialog', text:"MOM: Oh, sweetie, you're finally awake! I was worried sick." },
+            { type:'dialog', text:"MOM: Professor Hazel came by earlier. She said she has something important for you." },
+            { type:'dialog', text:"MOM: Her lab is just northeast of here. Go see what she wants, dear." },
+            { type:'setFlag', flag:'introDone', value:true },
+            { type:'completeQuest', quest:'visitHazel' }
+        ]);
     }
 }
+
+let game;
 window.addEventListener('load',()=>{new GameEngine();});
 </script>
 </body>
